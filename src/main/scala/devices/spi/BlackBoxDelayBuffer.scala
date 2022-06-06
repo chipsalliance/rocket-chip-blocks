@@ -1,3 +1,4 @@
+package sifive.blocks.devices.spi
 
 import Chisel._
 import freechips.rocketchip.util.ShiftRegInit
