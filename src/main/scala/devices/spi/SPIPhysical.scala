@@ -39,11 +39,36 @@ class SPIPhyControl(c: SPIParamsBase) extends SPIBundle(c) {
   val sampledel = new SPISampleDelay (c)
 }
 
+/** Basic SPI component to deal with data transfer.
+  *
+  * It recives operations from SPI Fifo(Tx) and outputs them in SPI Port(out).
+  * In the meantime, it recives feedback from slave device and uploads them to TL bus.
+  *
+  * ==Structure==
+  *  - baud rate generator: counter to implement the target baud rate
+  *  - scnt counter: counter of operation transfer
+  *  - sample counter: delay counter for 'sample'
+  *  - last counter: delay counter for 'last'
+  *  - buffer control logic
+  *   - rxd logic: transmit slave device response(dq.i) to buffer
+  *   - txd logic: construct the data to be transmited on dq.o from buffer
+  *
+  * ==datapath==
+  * {{{
+  * dq.i -> rxd -> samples -> buffer -> txd -> dq.o
+  * operation data(parellel in):
+  * TL Interface -> buffer
+  * }}}
+  */
 class SPIPhysical(c: SPIParamsBase) extends Module {
   val io = IO(new SPIBundle(c) {
+    /** top-level SPI port */
     val port = new SPIPortIO(c)
+    /** recives ctrol signals from SPI TopModule */
     val ctrl = Input(new SPIPhyControl(c))
+    /** recives operation from TL bus through SPI Fifo(Tx) */
     val op = Flipped(Decoupled(new SPIMicroOp(c)))
+    /** transmits slave device response to SPI Fifo(Rx) */
     val rx = Valid(Bits(c.frameBits.W))
   })
 
@@ -51,20 +76,41 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   val ctrl = Reg(new SPIPhyControl(c))
   val proto = SPIProtocol.decode(ctrl.fmt.proto)
 
+  /** indicates operations have been all accepted */
   val accept = WireDefault(false.B)
+  /** sample counter enable signal
+    *
+    * follows [[cref]]
+    */
   val sample = WireDefault(false.B)
+  /** setup txd
+    *
+    * follows [[cref]]
+    * drives [[setup_d]]
+    */
   val setup = WireDefault(false.B)
+  /** enable for last delay counter */
   val last = WireDefault(false.B)
 
   val setup_d = RegNext(setup)
 
+  /** counter of operation transfer
+    *
+    * init = op.cnt when op.data comes in
+    * related ctrl signals: [[beat]]
+    */
   val scnt = RegInit(0.U(c.countBits.W))
+  /** Baud rate generator
+    *
+    * reset = io.ctrl.sck.div(3) when
+    * related ctrl signals: [[stop]]
+    */
   val tcnt = Reg(UInt(c.divisorBits.W))
 
   val stop = (scnt === 0.U)
   val beat = (tcnt === 0.U)
 
-  //Making a delay counter for 'sample'
+  // Making a delay counter for 'sample'
   val totalCoarseDel = (io.ctrl.extradel.coarse + io.ctrl.sampledel.sd)
   val sample_d = RegInit(false.B) 
   val del_cntr = RegInit(UInt(c.divisorBits.W), (c.defaultSampleDel).U)
@@ -87,7 +133,8 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   }.otherwise {
     sample_d := false.B
   }
-  //Making a delay counter for 'last'
+  // Making a delay counter for 'last'
+  /** indicates the last set of data */
   val last_d = RegInit(false.B) 
   val del_cntr_last = RegInit(UInt(c.divisorBits.W), (c.defaultSampleDel).U)
   when (beat && last) {
@@ -110,16 +157,27 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   }
   val decr = Mux(beat, scnt, tcnt) - 1.U
   val sched = WireDefault(beat)
+  /** tcnt counter reset signal */
   tcnt := Mux(sched, ctrl.sck.div, decr)
 
+  /** sck output */
   val sck = Reg(Bool())
+  /** actual clock for
+    *
+    * flips in [[beat]]
+    *
+    * drives [[sample]] and [[setup]]
+    */
   val cref = RegInit(true.B)
+  /** spi mode */
   val cinv = ctrl.sck.pha ^ ctrl.sck.pol
-
+  /** converts data to matched endian */
   private def convert(data: UInt, fmt: SPIFormat) =
     Mux(fmt.endian === SPIEndian.MSB, data, Cat(data.asBools))
 
+  // recives reversed dq.i
   val rxd = Cat(io.port.dq.reverse.map(_.i))
+  // rxd after dalay added
   val rxd_delayed = VecInit(Seq.fill(io.port.dq.size)(false.B))
 
   //Adding fine-granularity delay buffers on the received data
@@ -134,21 +192,28 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
     rxd_delayed := rxd.asBools
   }
 
+  // buffer logic
   val rxd_fin = rxd_delayed.asUInt
   val samples = Seq(rxd_fin(1), rxd_fin(1, 0), rxd_fin)
 
+  // assuming quad
   val buffer = Reg(UInt(c.frameBits.W))
   val buffer_in = convert(io.op.bits.data, io.ctrl.fmt)
   val shift = Mux ((totalCoarseDel > 0.U), setup_d || (sample_d && stop), sample_d)
   buffer := Mux1H(proto, samples.zipWithIndex.map { case (data, i) =>
     val n = 1 << i
     val m = c.frameBits -1
+    // shift: buffer[3:0], sample[3:0]
+    // stay
+    // buffer(3,0) or buffer(8,4)
     Cat(Mux(shift, buffer(m-n, 0), buffer(m, n)),
+        // sample[3:0], or buffer (3:0)
         Mux(sample_d, data, buffer(n-1, 0)))
   })
 
   private def upper(x: UInt, n: Int) = x(c.frameBits-1, c.frameBits-n)
 
+  /** the data to be transmited */
   val txd = RegInit(0.U(io.port.dq.size.W))
   val txd_in = Mux(accept, upper(buffer_in, 4), upper(buffer, 4))
   val txd_sel = SPIProtocol.decode(Mux(accept, io.ctrl.fmt.proto, ctrl.fmt.proto))
@@ -156,7 +221,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   when (setup) {
     txd := Mux1H(txd_sel, txd_shf)
   }
-
+  // txd enable
   val tx = (ctrl.fmt.iodir === SPIDirection.Tx)
   val txen_in = (proto.head +: proto.tail.map(_ && tx)).scanRight(false.B)(_ || _).init
   val txen = txen_in :+ txen_in.last
@@ -171,13 +236,13 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
       dq.ie := ~(dq.oe)
   }
   io.op.ready := false.B
-
+  /** when true, transmits buffer to SPI fifo */
   val done = RegInit(true.B)
   done := done || last_d
 
   io.rx.valid := done
   io.rx.bits := convert(buffer, ctrl.fmt)
-
+  /** indicates if the op requires data transfer */
   val xfr = Reg(Bool())
 
   when (stop) {
@@ -205,9 +270,10 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
       sck := ctrl.sck.pol
     }
   }
-
+  // data and buffer transfer complete
   when (accept && done) {
     io.op.ready := true.B 
+    // op data comes in
     when (io.op.valid) {
       scnt := op.cnt
       rdisableOE := io.op.bits.disableOE.getOrElse(false.B)

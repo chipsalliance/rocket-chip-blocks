@@ -19,9 +19,25 @@ class SPILinkIO(c: SPIParamsBase) extends SPIBundle(c) {
   val disableOE = c.oeDisableDummy.option(Output(Bool())) // disable oe during dummy cycles in flash mode
 }
 
+/** Low level SPI protocol controller
+  *
+  * It recives operations from SPI Fifo(Tx) and outputs them in SPI Port(out).
+  * In the meantime, it recives response from slave device and uploads them to SPI Fifo(Rx)
+  *
+  * ==Component==
+  *  - SPI Physical
+  *  - SPI Physical control logic
+  *
+  * ==Datapass==
+  * {{{
+  * TL bus <-> SPI Fifo <-> SPI Media <-> SPI Port
+  * }}}
+  */
 class SPIMedia(c: SPIParamsBase) extends Module {
   val io = IO(new Bundle {
+    /** top level port */
     val port = new SPIPortIO(c)
+    /** recives ctrl signals from SPITopModule */
     val ctrl = new Bundle {
       val sck = Input(new SPIClocking(c))
       val dla = Input(new SPIDelay(c))
@@ -29,6 +45,7 @@ class SPIMedia(c: SPIParamsBase) extends Module {
       val extradel = Input(new SPIExtraDelay(c))
       val sampledel = Input(new SPISampleDelay(c))
     }
+    /** connected to SPI Fifo */
     val link = Flipped(new SPILinkIO(c))
   })
 

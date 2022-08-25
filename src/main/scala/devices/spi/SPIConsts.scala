@@ -9,6 +9,13 @@ object SPIProtocol {
   def Quad   = 2.U(width.W)
 
   def cases = Seq(Single, Dual, Quad)
+  /** protocol select status
+    * {{{
+    * Single -> (1,0,0)
+    * Dual   -> (0,1,0)
+    * Quad   -> (0,0,1)
+    * }}}
+    */
   def decode(x: UInt): Seq[Bool] = cases.map(_ === x)
 }
 

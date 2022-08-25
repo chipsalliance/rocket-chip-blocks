@@ -9,7 +9,9 @@ class SPIInnerIO(c: SPIParamsBase) extends SPILinkIO(c) {
 
 class SPIArbiter(c: SPIParamsBase, n: Int) extends Module {
   val io = IO(new Bundle {
+    /** from fifo and SPIFlashMap */
     val inner = Flipped(Vec(n, new SPIInnerIO(c)))
+    /** to SPIMedia */
     val outer = new SPILinkIO(c)
     val sel = Input(UInt(log2Up(n).W))
   })

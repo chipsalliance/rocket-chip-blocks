@@ -25,6 +25,22 @@ trait SPIFlashParamsBase extends SPIParamsBase {
   lazy val insnAddrLenBits = log2Floor(insnAddrBytes) + 1
 }
 
+/** SPI Flash Parameters
+  *
+  * @param rAddress control registers base address in TL
+  * @param fAddress flash base address in TL
+  * @param rSize SPI control registers address space size
+  * @param fSize SPI Flash address space size
+  * @param rxDepth rx fifo depth
+  * @param txDepth tx fifo depth
+  * @param csWidth width of chip select signal
+  * @param delayBits width of delay control registers
+  * @param divisorBits baud rate divisor
+  * @param fineDelayBits width of fine delay control register
+  * @param sampleDelayBits width of sample delay control register
+  * @param defaultSampleDel default sample delay number
+  * @param oeDisableDummy todo dummy clock
+  */
 case class SPIFlashParams(
     rAddress: BigInt,
     fAddress: BigInt,
@@ -51,6 +67,7 @@ case class SPIFlashParams(
   require(defaultSampleDel >= 0)
 }
 
+/** SPI flash device */
 class SPIFlashTopModule(c: SPIFlashParamsBase, outer: TLSPIFlashBase)
   extends SPITopModule(c, outer) {
 
