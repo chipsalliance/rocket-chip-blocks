@@ -18,6 +18,22 @@ import freechips.rocketchip.util._
 
 import sifive.blocks.util._
 
+import sifive.blocks.util._
+/** UART parameters
+  *
+  * @param address address
+  * @param dataBits number of bits in data frame
+  * @param stopBits number of stop bits
+  * @param divisorBits divisor
+  * @param oversample used in Rx
+  * @param nSamples number of samples
+  * @param nTxEntries number of Tx entries
+  * @param nRxEntries number of Rx entries
+  * @param includeFourWire Four Wire
+  * @param includeParity parity support
+  * @param includeIndependentParity IndependentParity
+  * @param initBaudRate Baud Rate
+  */
 case class UARTParams(
   address: BigInt,
   dataBits: Int = 8,
@@ -52,6 +68,18 @@ class UARTInterrupts extends Bundle {
 }
 
 //abstract class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
+/** UART controller
+  *
+  * Generates control signals according to CRs
+  *
+  * includes: Tx, Tx fifo, Rx, Rx fifo, TL bus to soc
+  *
+  * IO : [[UARTPortIO]]
+  *
+  * {{{datapass
+  * TL bus -> Tx fifo -> Tx
+  * TL bus <- Rx fifo <- Rx}}}
+  */
 class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
                    (implicit p: Parameters)
     extends IORegisterRouter(
