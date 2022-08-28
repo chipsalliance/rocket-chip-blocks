@@ -5,15 +5,15 @@ import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 import freechips.rocketchip.util._
 
-/** UART Reciving module
+/** UARTRx module transmits Rx port input to TL bus through Rx fifo.
   *
   * ==Datapass==
-  * Rx(port) -> sample -> shifter -> Rx fifo -> TL bus
+  * Port(Rx) -> sample -> shifter -> Rx fifo -> TL bus
   *
   * ==Structure==
-  *  - pulse counter:
+  *  - baud rate divisor counter (Td = [[UARTParams.divisorBits]]/[[UARTParams.oversample]] *T):
   *   generate pulse, the enable signal for sample and data shift
-  *  - sample counter
+  *  - sample counter(Ts = [[UARTParams.oversampleFactor]] * Td )
   *   sample happens in middle
   *  - data counter
   *   shift sample data to shifter
@@ -22,6 +22,8 @@ import freechips.rocketchip.util._
   * ==State Machine==
   * s_idle: detect start bit, init data_count and sample count, start pulse counter
   * s_data: data reciving
+  *
+  * @note Rx fifo transmits Rx data to TL bus
   */
 class UARTRx(c: UARTParams) extends Module {
   val io = new Bundle {

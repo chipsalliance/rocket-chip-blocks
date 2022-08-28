@@ -21,18 +21,18 @@ import sifive.blocks.util._
 import sifive.blocks.util._
 /** UART parameters
   *
-  * @param address address
+  * @param address uart device TL base address
   * @param dataBits number of bits in data frame
   * @param stopBits number of stop bits
-  * @param divisorBits divisor
+  * @param divisorBits baud rate divisor
   * @param oversample used in Rx
-  * @param nSamples number of samples
-  * @param nTxEntries number of Tx entries
-  * @param nRxEntries number of Rx entries
-  * @param includeFourWire Four Wire
+  * @param nSamples Number of reserved Rx sampling result for decision
+  * @param nTxEntries number of entries in fifo between TL bus and Tx
+  * @param nRxEntries number of entries in fifo between TL bus and Rx
+  * @param includeFourWire todo
   * @param includeParity parity support
-  * @param includeIndependentParity IndependentParity
-  * @param initBaudRate Baud Rate
+  * @param includeIndependentParity independent parity support
+  * @param initBaudRate baud Rate
   */
 case class UARTParams(
   address: BigInt,
@@ -68,17 +68,24 @@ class UARTInterrupts extends Bundle {
 }
 
 //abstract class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
-/** UART controller
+/** UART Module organizes Tx and Rx module with fifo and generates control signals for them according to CRs and UART papameters.
   *
-  * Generates control signals according to CRs
+  * ==Component==
+  *  - Tx
+  *  - Tx fifo
+  *  - Rx
+  *  - Rx fifo
+  *  - TL bus to soc
   *
-  * includes: Tx, Tx fifo, Rx, Rx fifo, TL bus to soc
+  * ==IO==
+  * [[UARTPortIO]]
   *
-  * IO : [[UARTPortIO]]
-  *
-  * {{{datapass
+  * ==Datapass==
+  * {{{
   * TL bus -> Tx fifo -> Tx
-  * TL bus <- Rx fifo <- Rx}}}
+  * TL bus <- Rx fifo <- Rx
+  * }}}
+  *
   */
 class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
                    (implicit p: Parameters)
