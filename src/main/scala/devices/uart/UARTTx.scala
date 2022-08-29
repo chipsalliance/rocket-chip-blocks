@@ -20,15 +20,15 @@ import freechips.rocketchip.util._
   */
 class UARTTx(c: UARTParams) extends Module {
   val io = new Bundle {
-    /** enable signal from top */
+    /** Tx enable signal from top */
     val en = Bool(INPUT)
-    /** data from bus */
+    /** data from Tx fifo */
     val in = Decoupled(Bits(width = c.dataBits)).flip
-    /** tx port */
+    /** Tx port */
     val out = Bits(OUTPUT, 1)
     /** divisor bits */
     val div = UInt(INPUT, c.divisorBits)
-    /** Number of stop bits */
+    /** number of stop bits */
     val nstop = UInt(INPUT, log2Up(c.stopBits))
     val tx_busy = Bool(OUTPUT)
     /** parity enable */
@@ -45,6 +45,7 @@ class UARTTx(c: UARTParams) extends Module {
       * false -> 9
       */
     val data8or9 = (c.dataBits == 9).option(Bool(INPUT))
+    /** clear to sned signal */
     val cts_n = c.includeFourWire.option(Bool(INPUT))
   }
 
