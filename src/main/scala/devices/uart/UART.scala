@@ -33,7 +33,7 @@ import sifive.blocks.util._
   * @param includeFourWire additional CTS/RTS ports for flow control
   * @param includeParity parity support
   * @param includeIndependentParity Tx and Rx have opposite parity modes
-  * @param initBaudRate baud Rate
+  * @param initBaudRate initial baud rate
   */
 case class UARTParams(
   address: BigInt,
