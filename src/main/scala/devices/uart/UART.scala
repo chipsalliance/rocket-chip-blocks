@@ -18,20 +18,21 @@ import freechips.rocketchip.util._
 
 import sifive.blocks.util._
 
-import sifive.blocks.util._
 /** UART parameters
+  *
+  * actual baud rate = [[initBaudRate]]/[[divisorBits]]
   *
   * @param address uart device TL base address
   * @param dataBits number of bits in data frame
   * @param stopBits number of stop bits
   * @param divisorBits baud rate divisor
-  * @param oversample used in Rx
-  * @param nSamples Number of reserved Rx sampling result for decision
+  * @param oversample times of sampling for every data bit
+  * @param nSamples number of reserved Rx sampling result for decide one data bit
   * @param nTxEntries number of entries in fifo between TL bus and Tx
   * @param nRxEntries number of entries in fifo between TL bus and Rx
-  * @param includeFourWire todo
+  * @param includeFourWire additional CTS/RTS ports for flow control
   * @param includeParity parity support
-  * @param includeIndependentParity independent parity support
+  * @param includeIndependentParity Tx and Rx have opposite parity modes
   * @param initBaudRate baud Rate
   */
 case class UARTParams(

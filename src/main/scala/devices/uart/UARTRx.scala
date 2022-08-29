@@ -16,7 +16,7 @@ import freechips.rocketchip.util._
   *  - sample counter(Ts = [[UARTParams.oversampleFactor]] * Td )
   *   sample happens in middle
   *  - data counter
-  *   shift sample data to shifter
+  *   control signals for data shift process
   *  - sample and data shift logic
   *
   * ==State Machine==
@@ -27,11 +27,11 @@ import freechips.rocketchip.util._
   */
 class UARTRx(c: UARTParams) extends Module {
   val io = new Bundle {
-    /** enable signal from top*/
+    /** enable signal from top */
     val en = Bool(INPUT)
-    /** input data from rx port*/
+    /** input data from rx port */
     val in = Bits(INPUT, 1)
-    /** output data to Rx fifo*/
+    /** output data to Rx fifo */
     val out = Valid(Bits(width = c.dataBits))
     /** divisor bits */
     val div = UInt(INPUT, c.divisorBits)
@@ -43,7 +43,7 @@ class UARTRx(c: UARTParams) extends Module {
       * 1 -> odd parity
       */
     val parity = c.includeParity.option(Bool(INPUT))
-    /** parity error bit*/
+    /** parity error bit */
     val errorparity = c.includeParity.option(Bool(OUTPUT))
     /** databit select
       *
@@ -62,7 +62,7 @@ class UARTRx(c: UARTParams) extends Module {
 
   val prescaler = Reg(UInt(width = c.divisorBits - c.oversample + 1))
   val start = Wire(init = Bool(false))
-  /** when true, start reciving a bit*/
+  /** when true, start reciving a bit */
   val pulse = (prescaler === UInt(0))
 
   private val dataCountBits = log2Floor(c.dataBits+c.includeParity.toInt) + 1
@@ -95,8 +95,7 @@ class UARTRx(c: UARTParams) extends Module {
     * transmisson proceeds}}}
     *
     * when true, init prescaler = io.div >> c.oversample
-    *
-    * */
+    */
   val restore = start || pulse
   // prescaler_next = prescaler -1 or presclaer or init=io.div >> c.oversample - 1
   val prescaler_in = Mux(restore, io.div >> c.oversample, prescaler)

@@ -24,7 +24,7 @@ class UARTTx(c: UARTParams) extends Module {
     val en = Bool(INPUT)
     /** data from bus */
     val in = Decoupled(Bits(width = c.dataBits)).flip
-    /** tx port*/
+    /** tx port */
     val out = Bits(OUTPUT, 1)
     /** divisor bits */
     val div = UInt(INPUT, c.divisorBits)
