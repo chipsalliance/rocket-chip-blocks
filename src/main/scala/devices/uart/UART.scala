@@ -83,7 +83,7 @@ class UARTInterrupts extends Bundle {
 }
 
 //abstract class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
-/** UART Module organizes Tx and Rx module with fifo and generates control signals for them according to CRs and UART papameters.
+/** UART Module organizes Tx and Rx module with fifo and generates control signals for them according to CSRs and UART parameters.
   *
   * ==Component==
   *  - Tx
