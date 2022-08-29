@@ -5,16 +5,16 @@ import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 import freechips.rocketchip.util._
 
-/** UARTTx module recives TL bus data from Tx fifo and transmits them to Port(Tx).
+/** UARTTx module recives TL bus data from Tx fifo in parallel and transmits them to Port(Tx).
   *
   * ==datapass==
   * TL bus -> Tx fifo -> io.in -> shifter  -> Port(Tx)
   *
   *  ==Structure==
-  *  - baud rate divisor counter(Td = [[UARTParams.divisorBits]] * T) :
+  *  - baud rate divisor counter:
   *  generate pulse, the enable signal for data shift.
-  *  - data shift logic :
-  *  parellel in, serial out
+  *  - data shift logic:
+  *  parallel in, serial out
   *
   * @note Tx fifo transmits TL bus data to Tx module
   */

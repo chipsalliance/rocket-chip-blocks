@@ -5,15 +5,15 @@ import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 import freechips.rocketchip.util._
 
-/** UARTRx module transmits Rx port input to TL bus through Rx fifo.
+/** UARTRx module recivies serial input from Rx port and transmits them to Rx fifo in parallel
   *
   * ==Datapass==
   * Port(Rx) -> sample -> shifter -> Rx fifo -> TL bus
   *
   * ==Structure==
-  *  - baud rate divisor counter (Td = [[UARTParams.divisorBits]]/[[UARTParams.oversample]] *T):
+  *  - baud rate divisor counter:
   *   generate pulse, the enable signal for sample and data shift
-  *  - sample counter(Ts = [[UARTParams.oversampleFactor]] * Td )
+  *  - sample counter:
   *   sample happens in middle
   *  - data counter
   *   control signals for data shift process
@@ -62,21 +62,20 @@ class UARTRx(c: UARTParams) extends Module {
 
   val prescaler = Reg(UInt(width = c.divisorBits - c.oversample + 1))
   val start = Wire(init = Bool(false))
-  /** when true, start reciving a bit */
+  /** enable signal for sampling and data shifting */
   val pulse = (prescaler === UInt(0))
 
   private val dataCountBits = log2Floor(c.dataBits+c.includeParity.toInt) + 1
-  /** init = data bits(8,9) + parity bit(0,1) + start bit(1) */
+  /** init = data bits(8 or 9) + parity bit(0 or 1) + start bit(1) */
   val data_count = Reg(UInt(width = dataCountBits))
   val data_last = (data_count === UInt(0))
   val parity_bit = (data_count === UInt(1)) && io.enparity.getOrElse(false.B)
-  // init sample_count = 15
+
   val sample_count = Reg(UInt(width = c.oversample))
-  /** sample_mid == 7.U */
   val sample_mid = (sample_count === UInt((c.oversampleFactor - c.nSamples + 1) >> 1))
   // todo unused
   val sample_last = (sample_count === UInt(0))
-  /** countdown
+  /** counter for data and sample
     *
     * {{{
     * |    data_count    |   sample_count  |
@@ -89,21 +88,22 @@ class UARTRx(c: UARTParams) extends Module {
   // For the last k samples, extend the sampling delay by 1 cycle.
   val remainder = io.div(c.oversample-1, 0)
   val extend = (sample_count < remainder) // Pad head: (sample_count > ~remainder)
-  /** returns true if
-    * {{{
-    * transmisson starts or
-    * transmisson proceeds}}}
+  /** prescaler reset signal
     *
-    * when true, init prescaler = io.div >> c.oversample
+    * conditions:
+    * {{{
+    * start : transmisson starts
+    * pulse : returns ture every pluse counter period
+    * }}}
     */
   val restore = start || pulse
-  // prescaler_next = prescaler -1 or presclaer or init=io.div >> c.oversample - 1
   val prescaler_in = Mux(restore, io.div >> c.oversample, prescaler)
   val prescaler_next = prescaler_in - Mux(restore && extend, UInt(0), UInt(1))
+  /** buffer for sample results */
   val sample = Reg(Bits(width = c.nSamples))
-  // take the majority bit of sample
+  // take the majority bit of sample buffer
   val voter = Majority(sample.asBools.toSet)
-  //shifter output
+  // data buffer
   val shifter = Reg(Bits(width = c.dataBits))
 
   val valid = Reg(init = Bool(false))
