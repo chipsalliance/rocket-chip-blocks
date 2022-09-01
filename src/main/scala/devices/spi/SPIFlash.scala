@@ -8,14 +8,19 @@ import chisel3.util._
 
 class SPIFlashInsn(c: SPIFlashParamsBase) extends SPIBundle(c) {
   val cmd = new Bundle with HasSPIProtocol {
+    /** value of command byte */
     val code = Bits(c.insnCmdBits.W)
+    /** enable sending of command */
     val en = Bool()
   }
   val addr = new Bundle with HasSPIProtocol {
+    /** number of address bytes */
     val len = UInt(c.insnAddrLenBits.W)
   }
   val pad = new Bundle {
+    /** first 8 bits to transmit during dummy cycles */
     val code = Bits(c.frameBits.W)
+    /** number of dummy cycles */
     val cnt = Bits(c.insnPadLenBits.W)
   }
   val data = new Bundle with HasSPIProtocol
@@ -46,12 +51,25 @@ class SPIFlashAddr(c: SPIFlashParamsBase) extends SPIBundle(c) {
   val hold = UInt(c.insnAddrBits.W)
 }
 
+/** SPI SoC Controller
+  *
+  * This module processes the operation information from SoC in proper format and order
+  * before transmits them to SPI Media.
+  */
 class SPIFlashMap(c: SPIFlashParamsBase) extends Module {
   val io = IO(new Bundle {
+    /** enable signal from SPI Top */
     val en = Input(Bool())
+    /** control signals from SPI Top
+      *
+      * insn from top TL bus CRs
+      */
     val ctrl = Input(new SPIFlashControl(c))
+    /** falsh address info from TL bus */
     val addr = Flipped(Decoupled(new SPIFlashAddr(c)))
+    /** transmits Flash response to TL bus */
     val data = Decoupled(UInt(c.frameBits.W))
+    /** connected to SPI Aribitor */
     val link = new SPIInnerIO(c)
   })
 

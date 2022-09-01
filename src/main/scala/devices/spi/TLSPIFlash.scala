@@ -67,7 +67,11 @@ case class SPIFlashParams(
   require(defaultSampleDel >= 0)
 }
 
-/** SPI flash device */
+/** QSPI which provides access to Serial Flash devices
+  *
+  * ==Features==
+  *  i. Set of TL accessible FLASH control registers to perform any Flash command
+  */
 class SPIFlashTopModule(c: SPIFlashParamsBase, outer: TLSPIFlashBase)
   extends SPITopModule(c, outer) {
 

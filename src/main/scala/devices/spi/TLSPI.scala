@@ -51,7 +51,7 @@ trait SPIParamsBase {
   * @param fineDelayBits width of fine delay control register
   * @param sampleDelayBits width of sample delay control register
   * @param defaultSampleDel default sample delay number
-  * @param oeDisableDummy todo dummy clock
+  * @param oeDisableDummy disable outout enable during dummy cycles in flash mode
   */
 case class SPIParams(
     rAddress: BigInt,
