@@ -7,6 +7,16 @@ class SPIInnerIO(c: SPIParamsBase) extends SPILinkIO(c) {
   val lock = Output(Bool())
 }
 
+
+/** Arbitor for SPI FlashMap and SPI FIFO
+  *
+  * {{{
+  * Input 0: SPI FlashMap
+  * Input 1: SPI FIFO
+  * Output: to SPI Media
+  * Select signal: come from SoC
+  * }}}
+  */
 class SPIArbiter(c: SPIParamsBase, n: Int) extends Module {
   val io = IO(new Bundle {
     /** from fifo and SPIFlashMap */

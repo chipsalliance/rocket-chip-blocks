@@ -39,7 +39,7 @@ trait SPIFlashParamsBase extends SPIParamsBase {
   * @param fineDelayBits width of fine delay control register
   * @param sampleDelayBits width of sample delay control register
   * @param defaultSampleDel default sample delay number
-  * @param oeDisableDummy todo dummy clock
+  * @param oeDisableDummy disable outout enable during dummy cycles in flash mode
   */
 case class SPIFlashParams(
     rAddress: BigInt,
@@ -69,8 +69,9 @@ case class SPIFlashParams(
 
 /** QSPI which provides access to Serial Flash devices
   *
-  * ==Features==
+  * ==Additionnal features for FLASH control==
   *  i. Set of TL accessible FLASH control registers to perform any Flash command
+  *  i. Configurable protocol mode(Single, Dual, Quad) for transmitting command, address and padding.
   */
 class SPIFlashTopModule(c: SPIFlashParamsBase, outer: TLSPIFlashBase)
   extends SPITopModule(c, outer) {
