@@ -67,11 +67,14 @@ case class SPIFlashParams(
   require(defaultSampleDel >= 0)
 }
 
-/** QSPI which provides access to Serial Flash devices
+/** QSPI which contains Serial Memory Mode to act as a Serial Flash memory controller
   *
-  * ==Additionnal features for FLASH control==
-  *  i. Set of TL accessible FLASH control registers to perform any Flash command
-  *  i. Configurable protocol mode(Single, Dual, Quad) for transmitting command, address and padding.
+  * ==Features==
+  *  1. Support two mode:
+  *   i. SPI mode as descrriped in TLSPI
+  *   i. Serial Memory Mode: In this Mode, the QSPI acts as a serial Flash memory controller.
+  *  1. Set of TL accessible FLASH control registers to perform any Flash command
+  *  1. Command, address and data can be sent independently using different modes.(Single, Dual, Quad).
   */
 class SPIFlashTopModule(c: SPIFlashParamsBase, outer: TLSPIFlashBase)
   extends SPITopModule(c, outer) {
