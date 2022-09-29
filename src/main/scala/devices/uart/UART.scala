@@ -2,8 +2,6 @@ package sifive.blocks.devices.uart
 
 import chisel3._
 import chisel3.util._
-//todo
-import Chisel.{defaultCompileOptions => _, _}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 import org.chipsalliance.cde.config.{Field, Parameters}
@@ -184,7 +182,7 @@ class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
     errorparity := rxm.io.errorparity.get || errorparity
     interrupts(1) := errorparity && errie
   }
-  //todo
+
   val ie = RegInit(0.U.asTypeOf(chiselTypeOf(new UARTInterrupts())))
   val ip = WireDefault(new UARTInterrupts)
 
