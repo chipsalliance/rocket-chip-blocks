@@ -1,5 +1,8 @@
 package sifive.blocks.devices.uart
 
+import chisel3._
+import chisel3.util._
+//todo
 import Chisel.{defaultCompileOptions => _, _}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
@@ -71,10 +74,10 @@ case class UARTParams(
 }
 
 class UARTPortIO(val c: UARTParams) extends Bundle {
-  val txd = Bool(OUTPUT)
-  val rxd = Bool(INPUT)
-  val cts_n = c.includeFourWire.option(Bool(INPUT))
-  val rts_n = c.includeFourWire.option(Bool(OUTPUT))
+  val txd = Output(Bool())
+  val rxd = Input(Bool())
+  val cts_n = Input(c.includeFourWire.option(Bool()))
+  val rts_n = Output(c.includeFourWire.option(Bool()))
 }
 
 class UARTInterrupts extends Bundle {
@@ -132,24 +135,24 @@ class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
   val rxm = Module(new UARTRx(c))
   val rxq = Module(new Queue(rxm.io.out.bits, c.nRxEntries))
 
-  val div = Reg(init = UInt(divisorInit, c.divisorBits))
+  val div = RegInit(divisorInit.U(c.divisorBits.W))
 
   private val stopCountBits = log2Up(c.stopBits)
   private val txCountBits = log2Floor(c.nTxEntries) + 1
   private val rxCountBits = log2Floor(c.nRxEntries) + 1
 
-  val txen = Reg(init = Bool(false))
-  val rxen = Reg(init = Bool(false))
-  val enwire4 = Reg(init = Bool(false))
-  val invpol = Reg(init = Bool(false))
-  val enparity = Reg(init = Bool(false))
-  val parity = Reg(init = Bool(false)) // Odd parity - 1 , Even parity - 0 
-  val errorparity = Reg(init = Bool(false))
-  val errie = Reg(init = Bool(false))
-  val txwm = Reg(init = UInt(0, txCountBits))
-  val rxwm = Reg(init = UInt(0, rxCountBits))
-  val nstop = Reg(init = UInt(0, stopCountBits))
-  val data8or9 = Reg(init = Bool(true))
+  val txen = RegInit(false.B)
+  val rxen = RegInit(false.B)
+  val enwire4 = RegInit(false.B)
+  val invpol = RegInit(false.B)
+  val enparity = RegInit(false.B)
+  val parity = RegInit(false.B) // Odd parity - 1 , Even parity - 0
+  val errorparity = RegInit(false.B)
+  val errie = RegInit(false.B)
+  val txwm = RegInit(0.U(txCountBits.W))
+  val rxwm = RegInit(0.U(rxCountBits.W))
+  val nstop = RegInit(0.U(stopCountBits.W))
+  val data8or9 = RegInit(true.B)
 
   if (c.includeFourWire){
     txm.io.en := txen && (!port.cts_n.get || !enwire4)
@@ -181,9 +184,9 @@ class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
     errorparity := rxm.io.errorparity.get || errorparity
     interrupts(1) := errorparity && errie
   }
-
-  val ie = Reg(init = new UARTInterrupts().fromBits(Bits(0)))
-  val ip = Wire(new UARTInterrupts)
+  //todo
+  val ie = RegInit(0.U.asTypeOf(chiselTypeOf(new UARTInterrupts())))
+  val ip = WireDefault(new UARTInterrupts)
 
   ip.txwm := (txq.io.count < txwm)
   ip.rxwm := (rxq.io.count > rxwm)
@@ -314,7 +317,7 @@ object UART {
   }
 
   def tieoff(port: UARTPortIO) {
-    port.rxd := UInt(1)
+    port.rxd := 1.U
     if (port.c.includeFourWire) {
       port.cts_n.foreach { ct => ct := false.B } // active-low
     }
