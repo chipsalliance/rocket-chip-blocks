@@ -37,21 +37,20 @@ class UARTRx(c: UARTParams) extends Module {
     /** divisor bits */
     val div = Input(UInt(c.divisorBits.W))
     /** parity enable */
-    val enparity = Input(c.includeParity.option(Bool()))
-    /** parity select
+    val enparity = c.includeParity.option(Input(Bool()))
       *
       * 0 -> even parity
       * 1 -> odd parity
       */
-    val parity = Input(c.includeParity.option(Bool()))
+    val parity = c.includeParity.option(Input(Bool()))
     /** parity error bit */
-    val errorparity = Output(c.includeParity.option(Bool()))
+    val errorparity = c.includeParity.option(Output(Bool()))
     /** databit select
       *
       * ture -> 8
       * false -> 9
       */
-    val data8or9 = Input((c.dataBits == 9).option(Bool()))
+    val data8or9 = (c.dataBits == 9).option(Input(Bool()))
   }
 
   if (c.includeParity)

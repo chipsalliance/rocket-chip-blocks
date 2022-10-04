@@ -74,8 +74,8 @@ case class UARTParams(
 class UARTPortIO(val c: UARTParams) extends Bundle {
   val txd = Output(Bool())
   val rxd = Input(Bool())
-  val cts_n = Input(c.includeFourWire.option(Bool()))
-  val rts_n = Output(c.includeFourWire.option(Bool()))
+  val cts_n = c.includeFourWire.option(Input(Bool()))
+  val rts_n = c.includeFourWire.option(Output(Bool()))
 }
 
 class UARTInterrupts extends Bundle {

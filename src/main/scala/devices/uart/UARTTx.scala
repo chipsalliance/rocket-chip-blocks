@@ -33,28 +33,27 @@ class UARTTx(c: UARTParams) extends Module {
     val nstop = Input(UInt(log2Up(c.stopBits).W))
     val tx_busy = Output(Bool())
     /** parity enable */
-    val enparity = Input(c.includeParity.option(Bool()))
+    val enparity = c.includeParity.option(Input(Bool()))
     /** parity select
       *
       * 0 -> even parity
       * 1 -> odd parity
       */
-    val parity = Input(c.includeParity.option(Bool()))
+    val parity = c.includeParity.option(Input(Bool()))
     /** databit select
       *
       * ture -> 8
       * false -> 9
       */
-    val data8or9 = Input((c.dataBits == 9).option(Bool()))
+    val data8or9 = (c.dataBits == 9).option(Input(Bool()))
     /** clear to sned signal */
-    val cts_n = Input(c.includeFourWire.option(Bool()))
+    val cts_n = c.includeFourWire.option(Input(Bool()))
   }
 
   val prescaler = RegInit(0.U(c.divisorBits.W))
   val pulse = (prescaler === 0.U)
 
   private val n = c.dataBits + 1 + c.includeParity.toInt
-  /** contains databit(8or9), start bit, stop bit and parity bit*/
   val counter = RegInit(0.U((log2Floor(n + c.stopBits) + 1).W))
   val shifter = Reg(UInt(n.W))
   val out = RegInit(1.U(1.W))
