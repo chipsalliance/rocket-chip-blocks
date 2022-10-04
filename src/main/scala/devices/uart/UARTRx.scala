@@ -1,6 +1,7 @@
 package sifive.blocks.devices.uart
 
 import chisel3._
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 import freechips.rocketchip.util._
