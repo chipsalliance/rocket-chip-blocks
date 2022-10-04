@@ -62,7 +62,7 @@ class UARTRx(c: UARTParams) extends Module {
   val debounce_min = (debounce === 0.U)
 
   val prescaler = Reg(UInt((c.divisorBits - c.oversample + 1).W))
-  val start = false.B
+  val start = WireDefault(false.B)
   val pulse = (prescaler === 0.U)
 
   private val dataCountBits = log2Floor(c.dataBits+c.includeParity.toInt) + 1
