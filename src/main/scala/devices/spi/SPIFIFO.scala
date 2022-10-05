@@ -1,6 +1,7 @@
 package sifive.blocks.devices.spi
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 class SPIFIFOControl(c: SPIParamsBase) extends SPIBundle(c) {
@@ -11,11 +12,11 @@ class SPIFIFOControl(c: SPIParamsBase) extends SPIBundle(c) {
 
 class SPIFIFO(c: SPIParamsBase) extends Module {
   val io = new Bundle {
-    val ctrl = new SPIFIFOControl(c).asInput
+    val ctrl = Input(new SPIFIFOControl(c))
     val link = new SPIInnerIO(c)
-    val tx = Decoupled(Bits(width = c.frameBits)).flip
-    val rx = Decoupled(Bits(width = c.frameBits))
-    val ip = new SPIInterrupts().asOutput
+    val tx = Flipped(Decoupled(UInt(c.frameBits.W)))
+    val rx = Flipped(Decoupled(UInt(c.frameBits.W)))
+    val ip = Output(new SPIInterrupts())
   }
 
   val txq = Module(new Queue(io.tx.bits, c.txDepth))
@@ -26,14 +27,14 @@ class SPIFIFO(c: SPIParamsBase) extends Module {
 
   val fire_tx = io.link.tx.fire()
   val fire_rx = io.link.rx.fire()
-  val rxen = Reg(init = Bool(false))
+  val rxen = RegInit(false.B)
 
   rxq.io.enq.valid := io.link.rx.valid && rxen
   rxq.io.enq.bits := io.link.rx.bits
   io.rx <> rxq.io.deq
 
   when (fire_rx) {
-    rxen := Bool(false)
+    rxen := false.B
   }
   when (fire_tx) {
     rxen := (io.link.fmt.iodir === SPIDirection.Rx)
@@ -53,7 +54,7 @@ class SPIFIFO(c: SPIParamsBase) extends Module {
 
   io.link.cs.set := !cs_mode_off
   io.link.cs.clear := cs_update || (fire_tx && cs_clear)
-  io.link.cs.hold := Bool(false)
+  io.link.cs.hold := false.B
 
   io.link.lock := io.link.tx.valid || rxen
 
