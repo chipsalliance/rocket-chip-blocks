@@ -95,7 +95,7 @@ class SPITopModule(c: SPIParamsBase, outer: TLSPIBase)
     SPICRs.csdef -> ctrl.cs.dflt.zipWithIndex.map{ case (x, i) => RegField(1, x,
                     RegFieldDesc(s"csdef$i", s"Chip select ${i} default", group = Some("csdef"), groupDesc = Some("Chip select default"), reset=Some(1)))},
     SPICRs.csmode -> Seq(RegField(SPICSMode.width, ctrl.cs.mode,
-                         RegFieldDesc("csmode", "Chip select mode", reset=Some(SPICSMode.Auto.litValue())))),
+                         RegFieldDesc("csmode", "Chip select mode", reset=Some(SPICSMode.Auto.litValue)))),
     SPICRs.dcssck -> Seq(RegField(c.delayBits, ctrl.dla.cssck,
                          RegFieldDesc("cssck", "CS to SCK delay", reset=Some(1)))),
     SPICRs.dsckcs -> Seq(RegField(c.delayBits, ctrl.dla.sckcs,
@@ -107,11 +107,11 @@ class SPITopModule(c: SPIParamsBase, outer: TLSPIBase)
 
     SPICRs.fmt -> RegFieldGroup("fmt",Some("Serial frame format"),Seq(
       RegField(SPIProtocol.width, ctrl.fmt.proto,
-               RegFieldDesc("proto","SPI Protocol", reset=Some(SPIProtocol.Single.litValue()))),
+               RegFieldDesc("proto","SPI Protocol", reset=Some(SPIProtocol.Single.litValue))),
       RegField(SPIEndian.width, ctrl.fmt.endian,
-               RegFieldDesc("endian","SPI Endianness", reset=Some(SPIEndian.MSB.litValue()))),
+               RegFieldDesc("endian","SPI Endianness", reset=Some(SPIEndian.MSB.litValue))),
       RegField(SPIDirection.width, ctrl.fmt.iodir,
-               RegFieldDesc("iodir","SPI I/O Direction", reset=Some(SPIDirection.Rx.litValue()))))),
+               RegFieldDesc("iodir","SPI I/O Direction", reset=Some(SPIDirection.Rx.litValue))))),
     SPICRs.len -> Seq(RegField(c.lengthBits, ctrl.fmt.len,
                       RegFieldDesc("len","Number of bits per frame", reset=Some(math.min(c.frameBits, 8))))),
 
