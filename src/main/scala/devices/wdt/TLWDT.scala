@@ -3,7 +3,7 @@ package sifive.blocks.devices.wdt
 import Chisel.{defaultCompileOptions => _, _}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import Chisel.ImplicitConversions._
-import chisel3.MultiIOModule
+import chisel3.Module
 
 import freechips.rocketchip.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._

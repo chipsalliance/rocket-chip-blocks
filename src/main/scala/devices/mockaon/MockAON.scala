@@ -2,7 +2,7 @@ package sifive.blocks.devices.mockaon
 
 import Chisel.{defaultCompileOptions => _, _}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
-import chisel3.MultiIOModule
+import chisel3.Module
 import freechips.rocketchip.config.Parameters
 import freechips.rocketchip.regmapper._
 import freechips.rocketchip.tilelink._
@@ -50,7 +50,7 @@ trait HasMockAONBundleContents extends Bundle {
   val resetCauses = new ResetCauses().asInput
 }
 
-trait HasMockAONModuleContents extends MultiIOModule with HasRegMap {
+trait HasMockAONModuleContents extends Module with HasRegMap {
   val io: HasMockAONBundleContents
   val params: MockAONParams
   val c = params

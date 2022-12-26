@@ -3,7 +3,7 @@ package sifive.blocks.devices.pwm
 import Chisel.{defaultCompileOptions => _, _}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import Chisel.ImplicitConversions._
-import chisel3.MultiIOModule
+import chisel3.Module
 
 import freechips.rocketchip.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
@@ -21,7 +21,7 @@ import freechips.rocketchip.util._
 import sifive.blocks.util._
 
 // Core PWM Functionality  & Register Interface
-class PWMTimer(val ncmp: Int = 4, val cmpWidth: Int = 16, val prefix: String = "pwm") extends MultiIOModule with GenericTimer {
+class PWMTimer(val ncmp: Int = 4, val cmpWidth: Int = 16, val prefix: String = "pwm") extends Module with GenericTimer {
 
   def orR(v: Vec[Bool]): Bool = v.foldLeft(Bool(false))( _||_ )
   protected def countWidth = ((1 << scaleWidth) - 1) + cmpWidth
@@ -29,7 +29,7 @@ class PWMTimer(val ncmp: Int = 4, val cmpWidth: Int = 16, val prefix: String = "
   protected lazy val feed = count.carryOut(scale + UInt(cmpWidth))
   protected lazy val countEn = Wire(Bool())
   override protected lazy val oneShot = RegEnable(io.regs.cfg.write.running && !countReset, Bool(false), (io.regs.cfg.write_running && unlocked) || countReset)
-  override protected lazy val extra: Vec[Bool]  = RegEnable(io.regs.cfg.write.extra, init = Vec.fill(maxcmp){false.B}, orR(io.regs.cfg.write_extra) && unlocked)
+  override protected lazy val extra: Vec[Bool]  = RegEnable(io.regs.cfg.write.extra, Vec.fill(maxcmp){false.B}, orR(io.regs.cfg.write_extra) && unlocked)
   override protected lazy val center: Vec[Bool] = RegEnable(io.regs.cfg.write.center, orR(io.regs.cfg.write_center) && unlocked)
   override protected lazy val gang: Vec[Bool] = RegEnable(io.regs.cfg.write.gang, orR(io.regs.cfg.write_gang) && unlocked)
   override protected lazy val deglitch = RegEnable(io.regs.cfg.write.deglitch, io.regs.cfg.write_deglitch && unlocked)(0)
