@@ -41,7 +41,8 @@ class Timer(w: Int, c: TimerParams)(implicit p: Parameters)
     with HasInterruptSources with HasTLControlRegMap {
 
   def nInterrupts: Int = 1
-  lazy val module = new LazyModuleImp(this) {
+  lazy val module = new Impl
+  class Impl extends LazyModuleImp(this) {
     val timer = Module(new PWMTimer(1, c.cmpWidth, "timer"))
     interrupts := timer.io.ip
     val mapping = (GenericTimer.timerRegMap(timer, 0, c.regBytes))

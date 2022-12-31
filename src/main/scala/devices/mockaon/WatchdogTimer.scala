@@ -3,7 +3,7 @@ package sifive.blocks.devices.mockaon
 import Chisel.{defaultCompileOptions => _, _}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import Chisel.ImplicitConversions._
-import chisel3.MultiIOModule
+import chisel3.Module
 import freechips.rocketchip.util.AsyncResetReg
 import freechips.rocketchip.regmapper.{RegFieldDesc}
 
@@ -21,7 +21,7 @@ object WatchdogTimer {
   val key = 0x51F15E
 }
 
-class WatchdogTimer extends MultiIOModule with GenericTimer {
+class WatchdogTimer extends Module with GenericTimer {
   protected def prefix = "wdog"
   protected def countWidth = 31
   protected def cmpWidth = 16
@@ -60,8 +60,7 @@ class WatchdogTimer extends MultiIOModule with GenericTimer {
   lazy val io = IO(new GenericTimerIO(regWidth, ncmp, maxcmp, scaleWidth, countWidth, cmpWidth) {
     val corerst = Bool(INPUT)
     val rst = Bool(OUTPUT)
-  }
-  )
+  })
   io.rst := AsyncResetReg(Bool(true), rsten && elapsed(0))
 }
 

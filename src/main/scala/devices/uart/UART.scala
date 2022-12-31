@@ -73,7 +73,8 @@ class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
   require(divisorInit != 0, "UART divisor wasn't initialized during instantiation")
   require(divisorInit >> c.divisorBits == 0, s"UART divisor reg (width $c.divisorBits) not wide enough to hold $divisorInit")
 
-  lazy val module = new LazyModuleImp(this) {
+  lazy val module = new Impl
+  class Impl extends LazyModuleImp(this) {
 
   val txm = Module(new UARTTx(c))
   val txq = Module(new Queue(txm.io.in.bits, c.nTxEntries))

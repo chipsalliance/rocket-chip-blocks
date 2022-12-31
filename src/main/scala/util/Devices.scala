@@ -50,7 +50,8 @@ class DevicesSubsystem(
 
   def devicesSubhierarchies = None
 
-  lazy val module = new LazyModuleImp(this) {
+  lazy val module = new Impl
+  class Impl extends LazyModuleImp(this) {
     override def desiredName: String = hierarchyName
   }
 }

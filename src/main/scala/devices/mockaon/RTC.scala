@@ -3,13 +3,13 @@ package sifive.blocks.devices.mockaon
 import Chisel.{defaultCompileOptions => _, _}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import Chisel.ImplicitConversions._
-import chisel3.MultiIOModule
+import chisel3.Module
 import freechips.rocketchip.util.AsyncResetReg
 import freechips.rocketchip.regmapper.RegFieldDesc
 
 import sifive.blocks.util.{SlaveRegIF, GenericTimer, GenericTimerIO, DefaultGenericTimerCfgDescs}
 
-class RTC extends MultiIOModule with GenericTimer {
+class RTC extends Module with GenericTimer {
 
   protected def prefix = "rtc"
   protected def countWidth = 48

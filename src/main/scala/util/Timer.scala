@@ -5,6 +5,7 @@ import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import Chisel.ImplicitConversions._
 import freechips.rocketchip.regmapper._
 import freechips.rocketchip.util.WideCounter
+import chisel3.Module
 
 import scala.math.{min, max}
 
@@ -197,6 +198,7 @@ trait GenericTimer {
   protected def cfg_desc: GenericTimerCfgDescs = DefaultGenericTimerCfgDescs(prefix, ncmp)
 
   val io: GenericTimerIO
+  //val io
 
   protected val scale = RegEnable(io.regs.cfg.write.scale, io.regs.cfg.write_scale && unlocked)
   protected lazy val zerocmp = RegEnable(io.regs.cfg.write.zerocmp, io.regs.cfg.write_zerocmp && unlocked)

@@ -66,7 +66,8 @@ abstract class GPIO(busWidthBytes: Int, c: GPIOParams)(implicit p: Parameters)
     "interrupt-controller" -> Nil,
     "#interrupt-cells"     -> Seq(ResourceInt(2)))
 
-  lazy val module = new LazyModuleImp(this) {
+  lazy val module = new Impl
+  class Impl extends LazyModuleImp(this) {
 
   //--------------------------------------------------
   // CSR Declarations

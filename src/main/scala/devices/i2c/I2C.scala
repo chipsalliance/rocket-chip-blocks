@@ -83,7 +83,8 @@ abstract class I2C(busWidthBytes: Int, params: I2CParams)(implicit p: Parameters
 
   def nInterrupts = 1
 
-  lazy val module = new LazyModuleImp(this) {
+  lazy val module = new Impl
+  class Impl extends LazyModuleImp(this) {
 
   val I2C_CMD_NOP   = UInt(0x00)
   val I2C_CMD_START = UInt(0x01)
