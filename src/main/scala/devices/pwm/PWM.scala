@@ -49,9 +49,11 @@ class PWMTimer(val ncmp: Int = 4, val cmpWidth: Int = 16, val prefix: String = "
     extra = Seq.tabulate(ncmp){ i => RegFieldDesc(s"${prefix}invert${i}", s"Invert Comparator ${i} Output", reset = Some(0))}
   )
 
-  lazy val io = IO(new GenericTimerIO(regWidth, ncmp, maxcmp, scaleWidth, countWidth, cmpWidth) {
+  class PWMTimerIO extends GenericTimerIO(regWidth, ncmp, maxcmp, scaleWidth, countWidth, cmpWidth) {
     val gpio = Vec(ncmp, Bool()).asOutput
-  })
+  }
+
+  lazy val io = IO(new PWMTimerIO)
 
   val invert = extra.asUInt
 
