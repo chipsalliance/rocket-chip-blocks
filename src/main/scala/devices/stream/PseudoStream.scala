@@ -38,7 +38,8 @@ abstract class PseudoStream(busWidthBytes: Int, val params: PseudoStreamParams)(
         size = 1 << log2Up(4096 * params.nChannels),
         beatBytes = busWidthBytes),
       new PseudoStreamPortIO(params)) {
-  lazy val module = new LazyModuleImp(this) {
+  lazy val module = new Impl
+  class Impl extends LazyModuleImp(this) {
 
     val nbports = Wire(Vec(params.nChannels, new PseudoStreamChannelIO(params)))
     val bports = Wire(Vec(params.nChannels, new PseudoStreamChannelIO(params)))

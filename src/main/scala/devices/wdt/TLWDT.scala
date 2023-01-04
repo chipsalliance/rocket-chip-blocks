@@ -44,7 +44,8 @@ abstract class WDT(busWidthBytes: Int, val params: WDTParams)(implicit p: Parame
 
   def nInterrupts: Int = 1
 
-  lazy val module = new LazyModuleImp(this) {
+  lazy val module = new Impl
+  class Impl extends LazyModuleImp(this) {
     val wdt = Module(new WatchdogTimer())
     interrupts := wdt.io.ip
     port.rst := wdt.io.rst

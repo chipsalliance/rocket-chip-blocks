@@ -60,8 +60,7 @@ class WatchdogTimer extends Module with GenericTimer {
   lazy val io = IO(new GenericTimerIO(regWidth, ncmp, maxcmp, scaleWidth, countWidth, cmpWidth) {
     val corerst = Bool(INPUT)
     val rst = Bool(OUTPUT)
-  }
-  )
+  })
   io.rst := AsyncResetReg(Bool(true), rsten && elapsed(0))
 }
 
