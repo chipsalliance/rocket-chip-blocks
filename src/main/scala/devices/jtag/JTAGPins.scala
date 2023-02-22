@@ -8,7 +8,7 @@ import Chisel._
 // define pins as those devices do.
 // ------------------------------------------------------------
 
-import freechips.rocketchip.config._
+import org.chipsalliance.cde.config._
 import freechips.rocketchip.jtag.{JTAGIO}
 import sifive.blocks.devices.pinctrl.{Pin, PinCtrl}
 

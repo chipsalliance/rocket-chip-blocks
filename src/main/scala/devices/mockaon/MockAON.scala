@@ -3,7 +3,7 @@ package sifive.blocks.devices.mockaon
 import Chisel.{defaultCompileOptions => _, _}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import chisel3.Module
-import freechips.rocketchip.config.Parameters
+import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.regmapper._
 import freechips.rocketchip.tilelink._
 

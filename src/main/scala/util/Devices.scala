@@ -3,7 +3,7 @@ package sifive.blocks.util
 import Chisel.{defaultCompileOptions => _, _}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
-import freechips.rocketchip.config.{Field, Parameters}
+import org.chipsalliance.cde.config.{Field, Parameters}
 
 import freechips.rocketchip.tilelink._
 import freechips.rocketchip.diplomacy._

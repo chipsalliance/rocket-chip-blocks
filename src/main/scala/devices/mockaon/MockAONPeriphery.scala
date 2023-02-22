@@ -2,7 +2,7 @@ package sifive.blocks.devices.mockaon
 
 import Chisel.{defaultCompileOptions => _, _}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
-import freechips.rocketchip.config.Field
+import org.chipsalliance.cde.config.Field
 import freechips.rocketchip.devices.debug.HasPeripheryDebug
 import freechips.rocketchip.devices.tilelink.CanHavePeripheryCLINT
 import freechips.rocketchip.diplomacy.{LazyModule, LazyModuleImp}
