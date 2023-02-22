@@ -24,7 +24,7 @@ class UARTRx(c: UARTParams) extends Module {
   val debounce_max = (debounce === UInt(3))
   val debounce_min = (debounce === UInt(0))
 
-  val prescaler = Reg(UInt(width = c.divisorBits - c.oversample + 1))
+  val prescaler = Reg(init = UInt(0, width = c.divisorBits - c.oversample + 1))
   val start = Wire(init = Bool(false))
   val pulse = (prescaler === UInt(0))
 
@@ -33,7 +33,7 @@ class UARTRx(c: UARTParams) extends Module {
   val data_count = Reg(UInt(width = dataCountBits))
   val data_last = (data_count === UInt(0))
   val parity_bit = (data_count === UInt(1)) && io.enparity.getOrElse(false.B)
-  val sample_count = Reg(UInt(width = c.oversample))
+  val sample_count = Reg(init = UInt(0, width = c.oversample))
   val sample_mid = (sample_count === UInt((c.oversampleFactor - c.nSamples + 1) >> 1))
   val sample_last = (sample_count === UInt(0))
   val countdown = Cat(data_count, sample_count) - UInt(1)
