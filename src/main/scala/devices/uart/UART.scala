@@ -183,8 +183,8 @@ class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
     interrupts(1) := errorparity && errie
   }
 
-  val ie = RegInit(0.U.asTypeOf(chiselTypeOf(new UARTInterrupts())))
-  val ip = WireDefault(new UARTInterrupts)
+  val ie = RegInit(0.U.asTypeOf(new UARTInterrupts()))
+  val ip = Wire(new UARTInterrupts)
 
   ip.txwm := (txq.io.count < txwm)
   ip.rxwm := (rxq.io.count > rxwm)

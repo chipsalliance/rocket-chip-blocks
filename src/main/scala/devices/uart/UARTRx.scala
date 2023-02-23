@@ -27,8 +27,7 @@ import freechips.rocketchip.util._
   * @note Rx fifo transmits Rx data to TL bus
   */
 class UARTRx(c: UARTParams) extends Module {
-  val io = new Bundle {
-    /** enable signal from top */
+  val io = IO(new Bundle {
     val en = Input(Bool())
     /** input data from rx port */
     val in = Input(UInt(1.W))
@@ -51,7 +50,7 @@ class UARTRx(c: UARTParams) extends Module {
       * false -> 9
       */
     val data8or9 = (c.dataBits == 9).option(Input(Bool()))
-  }
+  })
 
   if (c.includeParity)
     io.errorparity.get := false.B
@@ -70,15 +69,8 @@ class UARTRx(c: UARTParams) extends Module {
   val data_last = (data_count === 0.U)
   val parity_bit = (data_count === 1.U) && io.enparity.getOrElse(false.B)
   val sample_count = Reg(UInt(c.oversample.W))
-  // todo unused
   val sample_mid = (sample_count === ((c.oversampleFactor - c.nSamples + 1) >> 1).U)
   val sample_last = (sample_count === 0.U)
-  /** counter for data and sample
-    *
-    * {{{
-    * |    data_count    |   sample_count  |
-    * }}}
-    */
   val countdown = Cat(data_count, sample_count) - 1.U
 
   // Compensate for the divisor not being a multiple of the oversampling period.
@@ -89,7 +81,7 @@ class UARTRx(c: UARTParams) extends Module {
   val restore = start || pulse
   val prescaler_in = Mux(restore, io.div >> c.oversample, prescaler)
   val prescaler_next = prescaler_in - Mux(restore && extend, 0.U, 1.U)
-  /** buffer for sample results */
+
   val sample = Reg(UInt(c.nSamples.W))
   // take the majority bit of sample buffer
   val voter = Majority(sample.asBools.toSet)

@@ -20,7 +20,7 @@ import freechips.rocketchip.util._
   * @note Tx fifo transmits TL bus data to Tx module
   */
 class UARTTx(c: UARTParams) extends Module {
-  val io = new Bundle {
+  val io = IO(new Bundle {
     /** Tx enable signal from top */
     val en = Input(Bool())
     /** data from Tx fifo */
@@ -48,7 +48,7 @@ class UARTTx(c: UARTParams) extends Module {
     val data8or9 = (c.dataBits == 9).option(Input(Bool()))
     /** clear to sned signal */
     val cts_n = c.includeFourWire.option(Input(Bool()))
-  }
+  })
 
   val prescaler = RegInit(0.U(c.divisorBits.W))
   val pulse = (prescaler === 0.U)
