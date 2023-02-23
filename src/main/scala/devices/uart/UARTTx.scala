@@ -61,7 +61,7 @@ class UARTTx(c: UARTParams) extends Module {
 
   val plusarg_tx = PlusArg("uart_tx", 1, "Enable/disable the TX to speed up simulation").orR
 
-  val busy = (counter =/= UInt(0))
+  val busy = (counter =/= 0.U)
   io.in.ready := io.en && !busy
   io.tx_busy := busy
   when (io.in.fire()) {
@@ -73,7 +73,7 @@ class UARTTx(c: UARTParams) extends Module {
       val parity = Mux(io.enparity.get, includebit9 ^ io.in.bits(7,0).asBools.reduce(_ ^ _) ^ io.parity.get, true.B)
       val paritywithbit9 = if (c.dataBits == 9) Mux(io.data8or9.get, Cat(1.U(1.W), parity), Cat(parity, io.in.bits(8))) 
                            else Cat(1.U(1.W), parity)
-      shifter := Cat(paritywithbit9, io.in.bits(7,0), Bits(0, 1))
+      shifter := Cat(paritywithbit9, io.in.bits(7,0), 0.U(1.W))
       counter := Mux1H((0 until c.stopBits).map(i =>
         (io.nstop === i.U) -> (n + i + 1).U)) - (!io.enparity.get).asUInt - io.data8or9.getOrElse(0.U)
       // n = max number of databits configured at elaboration + start bit + parity bit 
