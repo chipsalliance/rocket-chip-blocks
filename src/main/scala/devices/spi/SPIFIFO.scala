@@ -11,13 +11,13 @@ class SPIFIFOControl(c: SPIParamsBase) extends SPIBundle(c) {
 }
 
 class SPIFIFO(c: SPIParamsBase) extends Module {
-  val io = new Bundle {
+  val io = IO(new Bundle {
     val ctrl = Input(new SPIFIFOControl(c))
     val link = new SPIInnerIO(c)
     val tx = Flipped(Decoupled(UInt(c.frameBits.W)))
     val rx = Flipped(Decoupled(UInt(c.frameBits.W)))
     val ip = Output(new SPIInterrupts())
-  }
+  })
 
   val txq = Module(new Queue(io.tx.bits, c.txDepth))
   val rxq = Module(new Queue(io.rx.bits, c.rxDepth))
@@ -42,7 +42,7 @@ class SPIFIFO(c: SPIParamsBase) extends Module {
 
   val proto = SPIProtocol.decode(io.link.fmt.proto).zipWithIndex
   val cnt_quot = Mux1H(proto.map { case (s, i) => s -> (io.ctrl.fmt.len >> i) })
-  val cnt_rmdr = Mux1H(proto.map { case (s, i) => s -> (if (i > 0) io.ctrl.fmt.len(i-1, 0).orR else UInt(0)) })
+  val cnt_rmdr = Mux1H(proto.map { case (s, i) => s -> (if (i > 0) io.ctrl.fmt.len(i-1, 0).orR else 0.U) })
   io.link.fmt <> io.ctrl.fmt
   io.link.cnt := cnt_quot + cnt_rmdr
 

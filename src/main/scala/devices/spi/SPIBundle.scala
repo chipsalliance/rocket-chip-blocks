@@ -48,7 +48,7 @@ class SPIChipSelect(c: SPIParamsBase) extends SPIBundle(c) {
   def toggle(en: Bool): Vec[Bool] = {
     val mask = en << id
     val out = Cat(dflt.reverse) ^ mask
-    Vec.tabulate(c.csWidth)(out(_))
+    VecInit.tabulate(c.csWidth)(out(_))
   }
 }
 

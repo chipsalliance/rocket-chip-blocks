@@ -42,12 +42,12 @@ class SPIPhyControl(c: SPIParamsBase) extends SPIBundle(c) {
 }
 
 class SPIPhysical(c: SPIParamsBase) extends Module {
-  val io = new SPIBundle(c) {
+  val io = IO(new SPIBundle(c) {
     val port = new SPIPortIO(c)
     val ctrl = Input(new SPIPhyControl(c))
     val op = Flipped(Decoupled(new SPIMicroOp(c)))
     val rx = Valid(UInt(c.frameBits.W))
-  }
+  })
 
   private val op = io.op.bits
   val ctrl = RegNext(io.ctrl)
@@ -110,7 +110,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   }.otherwise {
     last_d := false.B
   }
-  val decr = Mux(beat, scnt, tcnt) - UInt(1)
+  val decr = Mux(beat, scnt, tcnt) - 1.U
   val sched = WireInit(beat)
   tcnt := Mux(sched, ctrl.sck.div, decr)
 
@@ -122,7 +122,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
     Mux(fmt.endian === SPIEndian.MSB, data, Cat(data.asBools))
 
   val rxd = Cat(io.port.dq.reverse.map(_.i))
-  val rxd_delayed = Vec(Seq.fill(io.port.dq.size)(false.B))
+  val rxd_delayed = Vec(io.port.dq.size, false.B)
 
   //Adding fine-granularity delay buffers on the received data
   if (c.fineDelayBits > 0){
@@ -160,12 +160,12 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   }
 
   val tx = (ctrl.fmt.iodir === SPIDirection.Tx)
-  val txen_in = (proto.head +: proto.tail.map(_ && tx)).scanRight(Bool(false))(_ || _).init
+  val txen_in = (proto.head +: proto.tail.map(_ && tx)).scanRight(false.B)(_ || _).init
   val txen = txen_in :+ txen_in.last
   val rdisableOE = Reg(Bool())
 
   io.port.sck := sck
-  io.port.cs := Vec.fill(io.port.cs.size)(true.B) // dummy
+  io.port.cs := Vec(io.port.cs.size,true.B) // dummy
   (io.port.dq zip (txd.asBools zip txen)).foreach {
     case (dq, (o, oe)) =>
       dq.o := o
