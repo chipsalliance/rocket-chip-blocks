@@ -5,17 +5,47 @@ import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 import freechips.rocketchip.util._
 
+/** UARTTx module recives TL bus data from Tx fifo in parallel and transmits them to Port(Tx).
+  *
+  * ==datapass==
+  * TL bus -> Tx fifo -> io.in -> shifter  -> Port(Tx)
+  *
+  *  ==Structure==
+  *  - baud rate divisor counter:
+  *  generate pulse, the enable signal for data shift.
+  *  - data shift logic:
+  *  parallel in, serial out
+  *
+  * @note Tx fifo transmits TL bus data to Tx module
+  */
 class UARTTx(c: UARTParams) extends Module {
   val io = new Bundle {
+    /** Tx enable signal from top */
     val en = Bool(INPUT)
+    /** data from Tx fifo */
     val in = Decoupled(Bits(width = c.dataBits)).flip
+    /** Tx port */
     val out = Bits(OUTPUT, 1)
+    /** divisor bits */
     val div = UInt(INPUT, c.divisorBits)
+    /** number of stop bits */
     val nstop = UInt(INPUT, log2Up(c.stopBits))
     val tx_busy = Bool(OUTPUT)
+    /** parity enable */
     val enparity = c.includeParity.option(Bool(INPUT))
+    /** parity select
+      *
+      * 0 -> even parity
+      * 1 -> odd parity
+      */
     val parity = c.includeParity.option(Bool(INPUT))
+    /** databit select
+      *
+      * ture -> 8
+      * false -> 9
+      */
     val data8or9 = (c.dataBits == 9).option(Bool(INPUT))
+    /** clear to sned signal */
     val cts_n = c.includeFourWire.option(Bool(INPUT))
   }
 
@@ -23,6 +53,7 @@ class UARTTx(c: UARTParams) extends Module {
   val pulse = (prescaler === UInt(0))
 
   private val n = c.dataBits + 1 + c.includeParity.toInt
+  /** contains databit(8or9), start bit, stop bit and parity bit*/
   val counter = Reg(init = UInt(0, log2Floor(n + c.stopBits) + 1))
   val shifter = Reg(Bits(width = n))
   val out = Reg(init = Bits(1, 1))

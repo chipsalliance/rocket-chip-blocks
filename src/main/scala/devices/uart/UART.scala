@@ -18,6 +18,37 @@ import freechips.rocketchip.util._
 
 import sifive.blocks.util._
 
+/** UART parameters
+  *
+  * @param address uart device TL base address
+  * @param dataBits number of bits in data frame
+  * @param stopBits number of stop bits
+  * @param divisorBits width of baud rate divisor
+  * @param oversample constructs the times of sampling for every data bit
+  * @param nSamples number of reserved Rx sampling result for decide one data bit
+  * @param nTxEntries number of entries in fifo between TL bus and Tx
+  * @param nRxEntries number of entries in fifo between TL bus and Rx
+  * @param includeFourWire additional CTS/RTS ports for flow control
+  * @param includeParity parity support
+  * @param includeIndependentParity Tx and Rx have opposite parity modes
+  * @param initBaudRate initial baud rate
+  *
+  * @note baud rate divisor = clk frequency / baud rate. It means the number of clk period for one data bit.
+  *       Calculated in [[UARTAttachParams.attachTo()]]
+  *
+  * @example To configure a 8N1 UART with features below:
+  *          {{{
+  *            8 entries of Tx and Rx fifo
+  *            Baud rate = 115200
+  *            Rx samples each data bit 16 times
+  *            Uses 3 sample result for each data bit
+  *          }}}
+  *          Set the stopBits as below and keep the other parameter unchanged
+  *          {{{
+  *            stopBits = 1
+  *          }}}
+  *
+  */
 case class UARTParams(
   address: BigInt,
   dataBits: Int = 8,
@@ -52,6 +83,26 @@ class UARTInterrupts extends Bundle {
 }
 
 //abstract class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
+/** UART Module organizes Tx and Rx module with fifo and generates control signals for them according to CSRs and UART parameters.
+  *
+  * ==Component==
+  *  - Tx
+  *  - Tx fifo
+  *  - Rx
+  *  - Rx fifo
+  *  - TL bus to soc
+  *
+  * ==IO==
+  * [[UARTPortIO]]
+  *
+  * ==Datapass==
+  * {{{
+  * TL bus -> Tx fifo -> Tx
+  * TL bus <- Rx fifo <- Rx
+  * }}}
+  *
+  * @param divisorInit: number of clk period for one data bit
+  */
 class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
                    (implicit p: Parameters)
     extends IORegisterRouter(
