@@ -1,8 +1,7 @@
 package sifive.blocks.devices.uart
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
-import chisel3.{withClockAndReset}
 import freechips.rocketchip.util.SyncResetSynchronizerShiftReg
 import sifive.blocks.devices.pinctrl.{Pin}
 
@@ -20,11 +19,11 @@ object UARTPinsFromPort {
     withClockAndReset(clock, reset) {
       pins.txd.outputPin(uart.txd)
       val rxd_t = pins.rxd.inputPin()
-      uart.rxd := SyncResetSynchronizerShiftReg(rxd_t, syncStages, init = Bool(true), name = Some("uart_rxd_sync"))
+      uart.rxd := SyncResetSynchronizerShiftReg(rxd_t, syncStages, init = true.B, name = Some("uart_rxd_sync"))
       pins.rts_n.foreach { rt => rt.outputPin(uart.rts_n.get) }
       pins.cts_n.foreach { ct => 
-      	val cts_t = ct.inputPin()
-      	uart.cts_n.get := SyncResetSynchronizerShiftReg(cts_t, syncStages, init = Bool(false), name = Some("uart_cts_sync"))
+        val cts_t = ct.inputPin()
+        uart.cts_n.get := SyncResetSynchronizerShiftReg(cts_t, syncStages, init = false.B, name = Some("uart_cts_sync"))
       }
     }
   }
