@@ -1,6 +1,5 @@
 package sifive.blocks.devices.spi
 
-//import Chisel.{defaultCompileOptions => _, _}
 import chisel3._
 import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
@@ -122,7 +121,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
     Mux(fmt.endian === SPIEndian.MSB, data, Cat(data.asBools))
 
   val rxd = Cat(io.port.dq.reverse.map(_.i))
-  val rxd_delayed = Vec(io.port.dq.size, false.B)
+  val rxd_delayed = Wire(Vec(io.port.dq.size, false.B))
 
   //Adding fine-granularity delay buffers on the received data
   if (c.fineDelayBits > 0){
@@ -165,7 +164,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   val rdisableOE = Reg(Bool())
 
   io.port.sck := sck
-  io.port.cs := Vec(io.port.cs.size,true.B) // dummy
+  io.port.cs := VecInit(Fill(io.port.cs.size, true.B)) // dummy
   (io.port.dq zip (txd.asBools zip txen)).foreach {
     case (dq, (o, oe)) =>
       dq.o := o
