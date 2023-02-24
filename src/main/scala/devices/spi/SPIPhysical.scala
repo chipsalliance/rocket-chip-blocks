@@ -50,7 +50,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   })
 
   private val op = io.op.bits
-  val ctrl = RegNext(io.ctrl)
+  val ctrl = Reg(chiselTypeOf(io.ctrl))
   val proto = SPIProtocol.decode(ctrl.fmt.proto)
 
   val accept = WireInit(false.B)
@@ -61,7 +61,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   val setup_d = RegNext(setup)
 
   val scnt = RegInit(0.U(c.countBits.W))
-  val tcnt = RegNext(io.ctrl.sck.div)
+  val tcnt = Reg(chiselTypeOf(io.ctrl.sck.div))
 
   val stop = (scnt === 0.U)
   val beat = (tcnt === 0.U)
