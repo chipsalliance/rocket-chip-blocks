@@ -15,7 +15,7 @@ class SPIFIFO(c: SPIParamsBase) extends Module {
     val ctrl = Input(new SPIFIFOControl(c))
     val link = new SPIInnerIO(c)
     val tx = Flipped(Decoupled(UInt(c.frameBits.W)))
-    val rx = Flipped(Decoupled(UInt(c.frameBits.W)))
+    val rx = Decoupled(UInt(c.frameBits.W))
     val ip = Output(new SPIInterrupts())
   })
 
