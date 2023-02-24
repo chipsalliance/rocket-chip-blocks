@@ -4,9 +4,9 @@ import Chisel._
 
 object SPIProtocol {
   val width = 2
-  def Single = UInt(0, width)
-  def Dual   = UInt(1, width)
-  def Quad   = UInt(2, width)
+  def Single = 0.U(width.W)
+  def Dual   = 1.U(width.W)
+  def Quad   = 2.U(width.W)
 
   def cases = Seq(Single, Dual, Quad)
   def decode(x: UInt): Seq[Bool] = cases.map(_ === x)
@@ -14,21 +14,21 @@ object SPIProtocol {
 
 object SPIDirection {
   val width = 1
-  def Rx = UInt(0, width)
-  def Tx = UInt(1, width)
+  def Rx = 0.U(width.W)
+  def Tx = 1.U(width.W)
 }
 
 object SPIEndian {
   val width = 1
-  def MSB = UInt(0, width)
-  def LSB = UInt(1, width)
+  def MSB = 0.U(width.W)
+  def LSB = 1.U(width.W)
 }
 
 object SPICSMode {
   val width = 2
-  def Auto = UInt(0, width)
-  def Hold = UInt(2, width)
-  def Off  = UInt(3, width)
+  def Auto = 0.U(width.W)
+  def Hold = 2.U(width.W)
+  def Off  = 3.U(width.W)
 }
 
 /*
