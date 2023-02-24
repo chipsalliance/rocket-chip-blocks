@@ -54,6 +54,7 @@ class UARTTx(c: UARTParams) extends Module {
   val pulse = (prescaler === 0.U)
 
   private val n = c.dataBits + 1 + c.includeParity.toInt
+  /** contains databit(8or9), start bit, stop bit and parity bit*/
   val counter = RegInit(0.U((log2Floor(n + c.stopBits) + 1).W))
   val shifter = Reg(UInt(n.W))
   val out = RegInit(1.U(1.W))

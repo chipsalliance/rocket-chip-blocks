@@ -28,6 +28,7 @@ import freechips.rocketchip.util._
   */
 class UARTRx(c: UARTParams) extends Module {
   val io = IO(new Bundle {
+    /** enable signal from top */
     val en = Input(Bool())
     /** input data from rx port */
     val in = Input(UInt(1.W))
@@ -37,6 +38,7 @@ class UARTRx(c: UARTParams) extends Module {
     val div = Input(UInt(c.divisorBits.W))
     /** parity enable */
     val enparity = c.includeParity.option(Input(Bool()))
+    /** parity select
       *
       * 0 -> even parity
       * 1 -> odd parity
@@ -61,6 +63,7 @@ class UARTRx(c: UARTParams) extends Module {
 
   val prescaler = Reg(UInt((c.divisorBits - c.oversample + 1).W))
   val start = WireDefault(false.B)
+  /** enable signal for sampling and data shifting */
   val pulse = (prescaler === 0.U)
 
   private val dataCountBits = log2Floor(c.dataBits+c.includeParity.toInt) + 1
@@ -70,7 +73,14 @@ class UARTRx(c: UARTParams) extends Module {
   val parity_bit = (data_count === 1.U) && io.enparity.getOrElse(false.B)
   val sample_count = Reg(UInt(c.oversample.W))
   val sample_mid = (sample_count === ((c.oversampleFactor - c.nSamples + 1) >> 1).U)
+  // todo unused
   val sample_last = (sample_count === 0.U)
+  /** counter for data and sample
+    *
+    * {{{
+    * |    data_count    |   sample_count  |
+    * }}}
+    */
   val countdown = Cat(data_count, sample_count) - 1.U
 
   // Compensate for the divisor not being a multiple of the oversampling period.
@@ -78,10 +88,18 @@ class UARTRx(c: UARTParams) extends Module {
   // For the last k samples, extend the sampling delay by 1 cycle.
   val remainder = io.div(c.oversample-1, 0)
   val extend = (sample_count < remainder) // Pad head: (sample_count > ~remainder)
+  /** prescaler reset signal
+    *
+    * conditions:
+    * {{{
+    * start : transmisson starts
+    * pulse : returns ture every pluse counter period
+    * }}}
+    */
   val restore = start || pulse
   val prescaler_in = Mux(restore, io.div >> c.oversample, prescaler)
   val prescaler_next = prescaler_in - Mux(restore && extend, 0.U, 1.U)
-
+  /** buffer for sample results */
   val sample = Reg(UInt(c.nSamples.W))
   // take the majority bit of sample buffer
   val voter = Majority(sample.asBools.toSet)
