@@ -142,14 +142,13 @@ class USBBitStuffingRx extends Module {
 // output 1 signal every sampleRate (e.g. 4) clocks
 // when downstream can not consume this much data, buffer it
 // TODO: verify that sampleRatio the enough length for Queue
-class USBSamplerRx(sampleRate: Int) extends Module {
+class USBSamplerRx extends Module {
   val io = IO(new Bundle {
     val reset = Input(Bool())
+    val sampleRate = Input(UInt(Consts.sampleRateRegWidth.W))
     val in = Input(UInt(2.W))
     val out = DecoupledIO(UInt(2.W))
   })
-
-  require(sampleRate > 0)
 
   // 2-FF synchronizer
   val inSample1 = Reg(UInt(2.W))
@@ -159,22 +158,19 @@ class USBSamplerRx(sampleRate: Int) extends Module {
 
   val inSampleOld = Reg(UInt(2.W))
   inSampleOld := inSample2
-  val inMajorityCounter = RegInit(0.U(log2Ceil(sampleRate + 1).W))
+  val inMajorityCounter = RegInit(0.U(log2Ceil(Consts.sampleRateRegWidth + 1).W))
   // increase counter when sampled same signal
-  val inMajorityCounterNext = Mux(inMajorityCounter === sampleRate.U, 1.U,
+  val inMajorityCounterNext = Mux(inMajorityCounter === io.sampleRate, 1.U,
       Mux(inSampleOld === inSample2, inMajorityCounter + 1.U, 1.U))
   inMajorityCounter := inMajorityCounterNext
-  val inMajorityValue = if (sampleRate % 2 == 0) {
-    sampleRate / 2
-  }  else {
-    (sampleRate + 1) / 2
-  }
-  val inMajoritySampleOn = inMajorityCounterNext === inMajorityValue.U
+  val inMajorityValue = (io.sampleRate + 1.U) >> 1
+  val inMajoritySampleOn = inMajorityCounterNext === inMajorityValue
 
-  // use sampleRate as buffer length
   // TODO: actually a length of 1 may be enough
+  // use sampleRate as buffer length
   // pipe/flow is for sampleRate === 1
-  val buf = Module(new Queue(UInt(2.W), sampleRate, pipe=true, flow=true, hasFlush=true))
+  // FIXME: verify 2 is enough
+  val buf = Module(new Queue(UInt(2.W), 2, pipe=true, flow=true, hasFlush=true))
   buf.io.enq.bits := inSample2
   buf.io.enq.valid := inMajoritySampleOn
   buf.io.flush.get := io.reset
@@ -183,9 +179,10 @@ class USBSamplerRx(sampleRate: Int) extends Module {
   io.out <> buf.io.deq
 }
 
-class USBSamplerTx(sampleRate: Int) extends Module {
+class USBSamplerTx extends Module {
   val io = IO(new Bundle {
     val reset = Input(Bool())
+    val sampleRate = Input(UInt(Consts.sampleRateRegWidth.W))
     val in = Flipped(DecoupledIO(UInt(2.W)))
     val signalRxEop = Flipped(Valid(Bool()))
     val out = Output(UInt(2.W))
@@ -201,9 +198,8 @@ class USBSamplerTx(sampleRate: Int) extends Module {
     eopCounter := 0.U
   }
 
-  require(sampleRate > 0)
-  val counter = RegInit(0.U(log2Ceil(sampleRate + 1).W))
-  val sampleOn = counter === (sampleRate - 1).U
+  val counter = RegInit(0.U(log2Ceil(Consts.sampleRateRegWidth + 1).W))
+  val sampleOn = counter === (io.sampleRate - 1.U)
   counter := Mux(sampleOn, 0.U, counter + 1.U)
   when (io.reset) {
     counter := 0.U
@@ -217,7 +213,8 @@ class USBSamplerTx(sampleRate: Int) extends Module {
 
   // TODO: always fulfill buf when transmitting packet
   // pipe/flow is for sampleRate === 1
-  val buf = Module(new Queue(UInt(2.W), sampleRate, pipe=true, flow=true, hasFlush=true))
+  // TODO: verify 2 is enough
+  val buf = Module(new Queue(UInt(2.W), 2, pipe=true, flow=true, hasFlush=true))
   buf.io.enq <> io.in
   buf.io.deq.ready := dataOn
   buf.io.flush.get := io.reset
@@ -235,9 +232,10 @@ class USBSamplerTx(sampleRate: Int) extends Module {
   io.out := out
 }
 
-class USBSignalRx(sampleRate: Int) extends Module {
+class USBSignalRx extends Module {
   val io = IO(new Bundle {
     val in = Input(UInt(2.W))
+    val sampleRate = Input(UInt(Consts.sampleRateRegWidth.W))
     val isAfterSync = Input(Bool())
     val out = DecoupledIO(UInt(1.W))
     // not decoupled eop/reset
@@ -255,10 +253,11 @@ class USBSignalRx(sampleRate: Int) extends Module {
   io.eop.valid := false.B
   io.reset := resetWire
 
-  val sampler = Module(new USBSamplerRx(sampleRate))
+  val sampler = Module(new USBSamplerRx)
   sampler.io.in := io.in
   sampler.io.out.ready := false.B
   sampler.io.reset := resetWire
+  sampler.io.sampleRate := io.sampleRate
 
   val j = sampler.io.out.bits === USBBusState.J
   val se0 = sampler.io.out.bits === USBBusState.SE0
@@ -330,9 +329,10 @@ class USBSignalRx(sampleRate: Int) extends Module {
   io.out.valid := nrzi.io.out.valid && !bitstuffing.io.isStuff
 }
 
-class USBSignalTx(sampleRate: Int) extends Module {
+class USBSignalTx extends Module {
   val io = IO(new Bundle {
     val reset = Input(Bool())
+    val sampleRate = Input(UInt(Consts.sampleRateRegWidth.W))
     val in = Flipped(DecoupledIO(UInt(1.W)))
     val eop = Flipped(DecoupledIO(Bool()))
     val signalRxEop = Flipped(Valid(Bool()))
@@ -351,9 +351,10 @@ class USBSignalTx(sampleRate: Int) extends Module {
   nrzi.io.in <> bitstuffing.io.out
   nrzi.io.reset := io.reset
 
-  val sampler = Module(new USBSamplerTx(sampleRate))
+  val sampler = Module(new USBSamplerTx)
   sampler.io.signalRxEop := io.signalRxEop
   sampler.io.reset := io.reset
+  sampler.io.sampleRate := io.sampleRate
   io.out := sampler.io.out
 
   val data = Mux(nrzi.io.out.bits === USBData.T, USBBusState.J, USBBusState.K)

@@ -37,6 +37,6 @@ trait CanHavePeripheryUSBModuleImp extends LazyModuleImp {
   }
 }
 
-class WithUSB(baseAddress: BigInt, txEpNum: Int, sampleRate: Int) extends Config((site, here, up) => {
-  case PeripheryUSBKey => Some(USBParams(baseAddress = baseAddress, txEpNum = txEpNum, sampleRate = sampleRate))
+class WithUSB(baseAddress: BigInt, txEpNum: Int, initSampleRate: Int = 5) extends Config((site, here, up) => {
+  case PeripheryUSBKey => Some(USBParams(baseAddress = baseAddress, txEpNum = txEpNum, initSampleRate = initSampleRate))
 })

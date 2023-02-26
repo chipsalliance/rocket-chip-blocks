@@ -6,6 +6,7 @@ object USBCtrlRegs {
   val pullup    = 0x02
   val frame     = 0x04
   val interrupt = 0x08
+  val sampleRate = 0x0c
 
   val rxFifo     = 0x10
   val rxEmpty    = 0x11

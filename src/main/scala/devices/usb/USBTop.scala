@@ -3,7 +3,7 @@ package org.chipsalliance.rocketchip.blocks.devices.usb
 import chisel3._
 import chisel3.util._
 
-class USBTop(epNum: Int, sampleRate: Int) extends Module {
+class USBTop(epNum: Int) extends Module {
   val io = IO(new Bundle {
     val in = Input(UInt(2.W))
     val out = Output(UInt(2.W))
@@ -12,15 +12,16 @@ class USBTop(epNum: Int, sampleRate: Int) extends Module {
     val addr = Flipped(DecoupledIO(UInt(7.W)))
     val frame = Output(UInt(11.W))
     val stall = Input(Bool())
+    val sampleRate = Input(UInt(Consts.sampleRateRegWidth.W))
 
     val ep = new EPIO(epNum)
   })
 
-  val signalRx = Module(new USBSignalRx(sampleRate))
+  val signalRx = Module(new USBSignalRx)
   val packetRx = Module(new USBPacketRx)
   val transaction = Module(new USBTransaction(epNum))
   val packetTx = Module(new USBPacketTx)
-  val signalTx = Module(new USBSignalTx(sampleRate))
+  val signalTx = Module(new USBSignalTx)
 
   packetRx.io.reset := signalRx.io.reset
   transaction.io.reset := signalRx.io.reset
@@ -29,6 +30,7 @@ class USBTop(epNum: Int, sampleRate: Int) extends Module {
   io.reset := signalRx.io.reset
 
   signalRx.io.in := io.in
+  signalRx.io.sampleRate := io.sampleRate
   packetRx.io.in <> signalRx.io.out
   packetRx.io.eop := signalRx.io.eop
   signalRx.io.isAfterSync := packetRx.io.isAfterSync
@@ -50,6 +52,7 @@ class USBTop(epNum: Int, sampleRate: Int) extends Module {
   signalTx.io.in <> packetTx.io.out
   signalTx.io.eop <> packetTx.io.eop
   signalTx.io.signalRxEop := signalRx.io.eop
+  signalTx.io.sampleRate := io.sampleRate
 
   io.out := signalTx.io.out
 }

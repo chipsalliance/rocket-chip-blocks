@@ -14,7 +14,7 @@ case class USBParams(
   baseAddress: BigInt,
   // including EP0 IN
   txEpNum: Int = 2,
-  sampleRate: Int,
+  initSampleRate: Int = 5,
 )
 
 class USBPortIO extends Bundle {
@@ -27,6 +27,12 @@ class USBInterrupts(params: USBParams) extends Bundle {
   val reset = Bool()
   val rx = Bool()
   val tx = UInt(params.txEpNum.W)
+}
+
+object Consts {
+  // usb peripheral usually runs at 60MHz, whose sample rate is 60 / 12  = 5
+  // sample rate should not be too high, so 4 bit is enough
+  val sampleRateRegWidth = 4
 }
 
 abstract class USB(busWidthBytes: Int, val params: USBParams)
@@ -44,7 +50,7 @@ abstract class USB(busWidthBytes: Int, val params: USBParams)
 
   lazy val module = new LazyModuleImp(this) {
 
-  val impl = Module(new USBTop(params.txEpNum, params.sampleRate))
+  val impl = Module(new USBTop(params.txEpNum))
   // default value
   impl.io.stall := false.B
 
@@ -60,6 +66,9 @@ abstract class USB(busWidthBytes: Int, val params: USBParams)
   } .elsewhen (pullupWire === 2.U) {
     pullup := false.B
   }
+
+  val sampleRate = RegInit(params.initSampleRate.U(Consts.sampleRateRegWidth.W))
+  impl.io.sampleRate := sampleRate
 
   val ip = Wire(new USBInterrupts(params))
   interrupts := Seq(ip.asUInt.orR)
@@ -92,6 +101,8 @@ abstract class USB(busWidthBytes: Int, val params: USBParams)
       RegField.w(2, pullupWire)),
     USBCtrlRegs.frame -> Seq(
       RegField.r(11, impl.io.frame)),
+    USBCtrlRegs.sampleRate -> Seq(
+      RegField.w(Consts.sampleRateRegWidth, sampleRate)),
     )
 
   val interrupt = Seq(
