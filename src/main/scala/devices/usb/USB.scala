@@ -6,8 +6,6 @@ import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.regmapper._
 import freechips.rocketchip.subsystem._
-import freechips.rocketchip.amba.axi4._
-import freechips.rocketchip.amba.ahb._
 import freechips.rocketchip.tilelink._
 import freechips.rocketchip.devices.tilelink._
 import freechips.rocketchip.interrupts._
@@ -17,7 +15,6 @@ case class USBParams(
   // including EP0 IN
   txEpNum: Int = 2,
   sampleRate: Int,
-  useAXI4: Boolean = false,
 )
 
 class USBPortIO extends Bundle {
@@ -154,11 +151,3 @@ abstract class USB(busWidthBytes: Int, val params: USBParams)
 /** Specialize the generic USB to make it attachable to an TL interconnect. */
 class USBTL(busWidthBytes: Int, params: USBParams)(implicit p: Parameters)
   extends USB(busWidthBytes, params) with HasTLControlRegMap
-
-/** Specialize the generic USB to make it attachable to an AXI4 interconnect. */
-class USBAXI4(busWidthBytes: Int, params: USBParams)(implicit p: Parameters)
-  extends USB(busWidthBytes, params) with HasAXI4ControlRegMap
-
-/** Specialize the generic USB to make it attachable to an AHB interconnect. */
-class USBAHB(busWidthBytes: Int, params: USBParams)(implicit p: Parameters)
-  extends USB(busWidthBytes, params) with HasAHBControlRegMap
