@@ -37,7 +37,7 @@ abstract class USB(busWidthBytes: Int, val params: USBParams)
     extends IORegisterRouter(
       RegisterRouterParams(
         name = "usb",
-        compat = Seq("zenithal,usb"),
+        compat = Seq("chipsalliance,usb0"),
         base = params.baseAddress,
         beatBytes = busWidthBytes),
       new USBPortIO)
