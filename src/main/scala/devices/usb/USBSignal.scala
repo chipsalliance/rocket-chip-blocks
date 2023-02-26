@@ -6,7 +6,8 @@ import chisel3.util._
 object USBBusState {
   def ONE  = "b10".U(2.W)
   def ZERO = "b01".U(2.W)
-  def SE0   = "b00".U(2.W)
+  def SE0  = "b00".U(2.W)
+  def SE1  = "b11".U(2.W) // Invalid, only for OE
 
   // full speed for now
   def J     = ONE
@@ -14,6 +15,8 @@ object USBBusState {
 
   def DP(x: UInt): UInt = x(1)
   def DN(x: UInt): UInt = x(0)
+
+  def Cat(p: Bool, n: Bool): UInt = chisel3.util.Cat(p, n)
 }
 
 // 1 for J and 0 for K. Ref to Figure 7-21
@@ -220,13 +223,14 @@ class USBSamplerTx extends Module {
   buf.io.flush.get := io.reset
 
   // when dataOn, deq one bit from buf
-  // if not bit, means high impedance
+  // if not bit, means not output enable
   // encoded as SE1
+  // should be converted in USBIO
   val out = Reg(UInt(2.W))
   out := Mux(dataOn,
     Mux(buf.io.deq.valid,
       buf.io.deq.bits,
-      "b11".U(2.W)),
+      USBBusState.SE1),
     out)
 
   io.out := out

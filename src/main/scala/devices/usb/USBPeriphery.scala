@@ -14,7 +14,7 @@ trait HasPeripheryUSB { this: BaseSubsystem =>
 }
 
 trait HasPeripheryUSBBundle {
-  val usb: Seq[USBPortIO]
+  val usb: Seq[USBIO]
 }
 
 trait HasPeripheryUSBModuleImp extends LazyModuleImp with HasPeripheryUSBBundle {
@@ -22,6 +22,6 @@ trait HasPeripheryUSBModuleImp extends LazyModuleImp with HasPeripheryUSBBundle 
   val usb = outer.usbNodes.zipWithIndex.map { case(n,i) => n.makeIO()(ValName(s"usb_$i")) }
 }
 
-class WithUSB(baseAddress: BigInt, txEpNum: Int, initSampleRate: Int = 5) extends Config((site, here, up) => {
-  case PeripheryUSBKey => Seq(USBParams(baseAddress = baseAddress, txEpNum = txEpNum, initSampleRate = initSampleRate))
+class WithUSB(baseAddress: BigInt, txEpNum: Int, initSampleRate: Int = 5, ioType: USBIOType = USBTransceiverSTUSB03EIOType) extends Config((site, here, up) => {
+  case PeripheryUSBKey => Seq(USBParams(baseAddress = baseAddress, txEpNum = txEpNum, initSampleRate = initSampleRate, ioType = ioType))
 })

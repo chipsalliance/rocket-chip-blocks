@@ -18,13 +18,8 @@ case class USBParams(
   // including EP0 IN
   txEpNum: Int = 2,
   initSampleRate: Int = 5,
+  ioType: USBIOType = USBTransceiverSTUSB03EIOType,
 ) extends DeviceParams
-
-class USBPortIO extends Bundle {
-  val rx = Input(UInt(2.W))
-  val tx = Output(UInt(2.W))
-  val pullup = Output(Bool())
-}
 
 class USBInterrupts(params: USBParams) extends Bundle {
   val reset = Bool()
@@ -46,7 +41,7 @@ abstract class USB(busWidthBytes: Int, val params: USBParams)
         compat = Seq("chipsalliance,usb0"),
         base = params.baseAddress,
         beatBytes = busWidthBytes),
-      new USBPortIO)
+      USBIO(params.ioType))
     with HasInterruptSources {
 
   def nInterrupts = 1
@@ -57,11 +52,7 @@ abstract class USB(busWidthBytes: Int, val params: USBParams)
   // default value
   impl.io.stall := false.B
 
-  impl.io.in := port.rx
-  port.tx := impl.io.out
-
   val pullup = RegInit(false.B)
-  port.pullup := pullup
   // write 1 to pullup, write 2 to clear pullup
   val pullupWire = WireDefault(0.U(2.W))
   when (pullupWire === 1.U) {
@@ -69,6 +60,8 @@ abstract class USB(busWidthBytes: Int, val params: USBParams)
   } .elsewhen (pullupWire === 2.U) {
     pullup := false.B
   }
+
+  USBIO.connect(port, impl, pullup)
 
   val sampleRate = RegInit(params.initSampleRate.U(Consts.sampleRateRegWidth.W))
   impl.io.sampleRate := sampleRate
@@ -219,13 +212,4 @@ case class USBAttachParams(
 
 object USB {
   val nextId = { var i = -1; () => { i += 1; i} }
-
-  def makePort(node: BundleBridgeSource[USBPortIO], name: String)(implicit p: Parameters): ModuleValue[USBPortIO] = {
-    val usbNode = node.makeSink()
-    InModuleBody { usbNode.makeIO()(ValName(name)) }
-  }
-
-  def tieoff(port: USBPortIO) {
-    port.rx := 0.U
-  }
 }
