@@ -172,8 +172,8 @@ case class USBAttachParams(
   device: USBParams,
   controlWhere: TLBusWrapperLocation = PBUS,
   blockerAddr: Option[BigInt] = None,
-  controlXType: ClockCrossingType = new AsynchronousCrossing,
-  intXType: ClockCrossingType = new AsynchronousCrossing) extends DeviceAttachParams
+  controlXType: ClockCrossingType = NoCrossing,
+  intXType: ClockCrossingType = NoCrossing) extends DeviceAttachParams
 {
   def attachTo(where: Attachable)(implicit p: Parameters): USBTL = where {
     val name = s"usb_${USB.nextId()}"
