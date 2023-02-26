@@ -5,38 +5,23 @@ import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.tilelink._
 import freechips.rocketchip.subsystem.BaseSubsystem
 
-case object PeripheryUSBKey extends Field[Option[USBParams]](None)
+case object PeripheryUSBKey extends Field[Seq[USBParams]](Nil)
 
-trait CanHavePeripheryUSB { this: BaseSubsystem =>
-  private val portName = "usb"
-
-  val usb = p(PeripheryUSBKey) match {
-    case Some(params) => {
-      val module = {
-        val usb = LazyModule(new USBTL(pbus.beatBytes, params)(p))
-        pbus.coupleTo(portName){ usb.controlXing(NoCrossing) :*= TLFragmenter(pbus) :*= _ }
-        usb
-      }
-
-      // attach to interrupt bus
-      ibus.fromSync := module.intXing(NoCrossing)
-
-      Some(module.ioNode.makeSink())
-    }
-    case None => None
+trait HasPeripheryUSB { this: BaseSubsystem =>
+  val usbNodes = p(PeripheryUSBKey).map { ps =>
+    USBAttachParams(ps).attachTo(this).ioNode.makeSink()
   }
 }
 
-trait CanHavePeripheryUSBModuleImp extends LazyModuleImp {
-  val outer: CanHavePeripheryUSB
-  val usb = outer.usb match {
-    case Some(usb) => {
-      Some(usb.makeIO()(ValName(s"usbport")))
-    }
-    case None => None
-  }
+trait HasPeripheryUSBBundle {
+  val usb: Seq[USBPortIO]
+}
+
+trait HasPeripheryUSBModuleImp extends LazyModuleImp with HasPeripheryUSBBundle {
+  val outer: HasPeripheryUSB
+  val usb = outer.usbNodes.zipWithIndex.map { case(n,i) => n.makeIO()(ValName(s"usb_$i")) }
 }
 
 class WithUSB(baseAddress: BigInt, txEpNum: Int, initSampleRate: Int = 5) extends Config((site, here, up) => {
-  case PeripheryUSBKey => Some(USBParams(baseAddress = baseAddress, txEpNum = txEpNum, initSampleRate = initSampleRate))
+  case PeripheryUSBKey => Seq(USBParams(baseAddress = baseAddress, txEpNum = txEpNum, initSampleRate = initSampleRate))
 })

@@ -2,20 +2,23 @@ package org.chipsalliance.rocketchip.blocks.devices.usb
 
 import chisel3._
 import chisel3.util._
-import org.chipsalliance.cde.config.Parameters
+import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.regmapper._
 import freechips.rocketchip.subsystem._
 import freechips.rocketchip.tilelink._
 import freechips.rocketchip.devices.tilelink._
 import freechips.rocketchip.interrupts._
+import freechips.rocketchip.prci._
+
+import sifive.blocks.util._
 
 case class USBParams(
   baseAddress: BigInt,
   // including EP0 IN
   txEpNum: Int = 2,
   initSampleRate: Int = 5,
-)
+) extends DeviceParams
 
 class USBPortIO extends Bundle {
   val rx = Input(UInt(2.W))
@@ -162,3 +165,67 @@ abstract class USB(busWidthBytes: Int, val params: USBParams)
 /** Specialize the generic USB to make it attachable to an TL interconnect. */
 class USBTL(busWidthBytes: Int, params: USBParams)(implicit p: Parameters)
   extends USB(busWidthBytes, params) with HasTLControlRegMap
+
+case class USBLocated(loc: HierarchicalLocation) extends Field[Seq[USBAttachParams]](Nil)
+
+case class USBAttachParams(
+  device: USBParams,
+  controlWhere: TLBusWrapperLocation = PBUS,
+  blockerAddr: Option[BigInt] = None,
+  controlXType: ClockCrossingType = new AsynchronousCrossing,
+  intXType: ClockCrossingType = new AsynchronousCrossing) extends DeviceAttachParams
+{
+  def attachTo(where: Attachable)(implicit p: Parameters): USBTL = where {
+    val name = s"usb_${USB.nextId()}"
+    val tlbus = where.locateTLBusWrapper(controlWhere)
+    val usbClockDomainWrapper = LazyModule(new ClockSinkDomain(take = None))
+    val usb = usbClockDomainWrapper { LazyModule(new USBTL(tlbus.beatBytes, device)) }
+    usb.suggestName(name)
+
+    tlbus.coupleTo(s"device_named_$name") { bus =>
+
+      val blockerOpt = blockerAddr.map { a =>
+        val blocker = LazyModule(new TLClockBlocker(BasicBusBlockerParams(a, tlbus.beatBytes, tlbus.beatBytes)))
+        tlbus.coupleTo(s"bus_blocker_for_$name") { blocker.controlNode := TLFragmenter(tlbus) := _ }
+        blocker
+      }
+
+      usbClockDomainWrapper.clockNode := (controlXType match {
+        case _: SynchronousCrossing =>
+          tlbus.dtsClk.map(_.bind(usb.device))
+          tlbus.fixedClockNode
+        case _: RationalCrossing =>
+          tlbus.clockNode
+        case _: AsynchronousCrossing =>
+          val usbClockGroup = ClockGroup()
+          usbClockGroup := where.asyncClockGroupsNode
+          blockerOpt.map { _.clockNode := usbClockGroup } .getOrElse { usbClockGroup }
+      })
+
+      (usb.controlXing(controlXType)
+        := TLFragmenter(tlbus)
+        := blockerOpt.map { _.node := bus } .getOrElse { bus })
+    }
+
+    (intXType match {
+      case _: SynchronousCrossing => where.ibus.fromSync
+      case _: RationalCrossing => where.ibus.fromRational
+      case _: AsynchronousCrossing => where.ibus.fromAsync
+    }) := usb.intXing(intXType)
+
+    usb
+  }
+}
+
+object USB {
+  val nextId = { var i = -1; () => { i += 1; i} }
+
+  def makePort(node: BundleBridgeSource[USBPortIO], name: String)(implicit p: Parameters): ModuleValue[USBPortIO] = {
+    val usbNode = node.makeSink()
+    InModuleBody { usbNode.makeIO()(ValName(name)) }
+  }
+
+  def tieoff(port: USBPortIO) {
+    port.rx := 0.U
+  }
+}
