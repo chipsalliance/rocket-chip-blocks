@@ -84,7 +84,7 @@ class SPIMedia(c: SPIParamsBase) extends Module {
 
           op.valid := io.link.tx.valid
           io.link.tx.ready := op.ready
-          when (op.fire()) {
+          when (op.fire) {
             state := s_interxfr
           }
         }

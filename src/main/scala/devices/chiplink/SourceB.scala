@@ -37,9 +37,9 @@ class SourceB(info: ChipLinkInfo) extends Module
 
   val (_, q_last) = info.firstlast(io.q, Some(UInt(1)))
   val q_hasData = !q_opcode(2)
-  val b_first = RegEnable(state =/= s_data, io.q.fire())
+  val b_first = RegEnable(state =/= s_data, io.q.fire)
 
-  when (io.q.fire()) {
+  when (io.q.fire) {
     switch (state) {
       is (s_header)   { state := s_address0 }
       is (s_address0) { state := s_address1 }

@@ -65,10 +65,10 @@ class UARTTx(c: UARTParams) extends Module {
   val busy = (counter =/= 0.U)
   io.in.ready := io.en && !busy
   io.tx_busy := busy
-  when (io.in.fire()) {
+  when (io.in.fire) {
     printf("UART TX (%x): %c\n", io.in.bits, io.in.bits)
   }
-  when (io.in.fire() && plusarg_tx) {
+  when (io.in.fire && plusarg_tx) {
     if (c.includeParity) {
       val includebit9 = if (c.dataBits == 9) Mux(io.data8or9.get, false.B, io.in.bits(8)) else false.B
       val parity = Mux(io.enparity.get, includebit9 ^ io.in.bits(7,0).asBools.reduce(_ ^ _) ^ io.parity.get, true.B)

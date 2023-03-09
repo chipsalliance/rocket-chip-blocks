@@ -126,7 +126,7 @@ case class ChipLinkInfo(params: ChipLinkParams, edgeIn: TLEdge, edgeOut: TLEdge,
     val beats = beats1(x.bits, forceFormat)
     val first = count === UInt(0)
     val last  = count === UInt(1) || (first && beats === UInt(0))
-    when (x.fire()) { count := Mux(first, beats, count - UInt(1)) }
+    when (x.fire) { count := Mux(first, beats, count - UInt(1)) }
     (first, last)
   }
 

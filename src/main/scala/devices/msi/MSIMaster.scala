@@ -60,14 +60,14 @@ class MSIMaster(targets: Seq[MSITarget])(implicit p: Parameters) extends LazyMod
       data       = data << (shift << 3))._2
 
     // When A is sent, toggle our model of the remote state
-    when (io.a.fire()) {
+    when (io.a.fire) {
       remote := remote ^ select
       busy   := Bool(true)
     }
 
     // Sink D messages to clear busy
     io.d.ready := Bool(true)
-    when (io.d.fire()) {
+    when (io.d.fire) {
       busy := Bool(false)
     }
 
