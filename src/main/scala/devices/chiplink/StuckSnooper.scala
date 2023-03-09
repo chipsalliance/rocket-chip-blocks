@@ -59,7 +59,7 @@ class StuckSnooper(uFn: Seq[TLClientPortParameters] => TLClientPortParameters)(i
 
     //Enable probes to in1 only after it issues an acquire
     val divertprobes = RegInit(true.B)
-    divertprobes := divertprobes && ~(in1.a.fire() && (in1.a.bits.opcode === TLMessages.AcquireBlock || in1.a.bits.opcode === TLMessages.AcquirePerm))
+    divertprobes := divertprobes && ~(in1.a.fire && (in1.a.bits.opcode === TLMessages.AcquireBlock || in1.a.bits.opcode === TLMessages.AcquirePerm))
     val bypass_c = Wire(Bool()) 
     bypass_c := bypass || divertprobes
 
