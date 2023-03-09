@@ -65,7 +65,7 @@ class SPIFlashTopModule(c: SPIFlashParamsBase, outer: TLSPIFlashBase)
   val a = Reg(f.a.bits)
   val a_msb = log2Ceil(c.fSize) - 1
 
-  when (f.a.fire()) {
+  when (f.a.fire) {
     a := f.a.bits
   }
 

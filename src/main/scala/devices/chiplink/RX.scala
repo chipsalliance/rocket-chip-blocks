@@ -33,7 +33,7 @@ class RX(info: ChipLinkInfo) extends Module
   // Select the correct HellaQueue for the request
   val (first, _) = info.firstlast(beat)
   val formatBits  = beat.bits(2, 0)
-  val formatValid = beat.fire() && first
+  val formatValid = beat.fire && first
   val format = Mux(formatValid, formatBits, RegEnable(formatBits, formatValid))
   val formatOH = UIntToOH(format)
 
@@ -77,7 +77,7 @@ class RX(info: ChipLinkInfo) extends Module
   // Generate new RX credits as the HellaQueues drain
   val rxInc = Wire(new CreditBump(info.params))
   (hqX zip rxInc.X) foreach { case (hq, inc) =>
-    inc := hq.io.deq.fire().asUInt
+    inc := hq.io.deq.fire.asUInt
   }
 
   // Generate new TX credits as we receive F-format messages
@@ -86,8 +86,8 @@ class RX(info: ChipLinkInfo) extends Module
   // As we hand-over credits, reset the counters
   tx := tx + txInc
   rx := rx + rxInc
-  when (txOut.fire()) { tx := txInc }
-  when (rxOut.fire()) { rx := rxInc }
+  when (txOut.fire) { tx := txInc }
+  when (rxOut.fire) { rx := rxInc }
 }
 
 /*

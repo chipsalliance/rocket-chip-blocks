@@ -24,8 +24,8 @@ class SPIFIFO(c: SPIParamsBase) extends Module {
   txq.io.enq <> io.tx
   io.link.tx <> txq.io.deq
 
-  val fire_tx = io.link.tx.fire()
-  val fire_rx = io.link.rx.fire()
+  val fire_tx = io.link.tx.fire
+  val fire_rx = io.link.rx.fire
   val rxen = Reg(init = Bool(false))
 
   rxq.io.enq.valid := io.link.rx.valid && rxen

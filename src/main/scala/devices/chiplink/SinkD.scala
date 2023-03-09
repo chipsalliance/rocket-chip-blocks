@@ -27,7 +27,7 @@ class SinkD(info: ChipLinkInfo) extends Module
   val d_hasData = info.edgeOut.hasData(d.bits)
   val d_grant = d.bits.opcode === TLMessages.Grant || d.bits.opcode === TLMessages.GrantData
 
-  when (io.q.fire()) {
+  when (io.q.fire) {
     switch (state) {
       is (s_header)   { state := Mux(d_grant, s_sink, Mux(d_hasData, s_data, s_header)) }
       is (s_sink)     { state := Mux(d_hasData, s_data, s_header) }
@@ -37,9 +37,9 @@ class SinkD(info: ChipLinkInfo) extends Module
 
   // Release the TL source
   val relack = d.bits.opcode === TLMessages.ReleaseAck
-  io.a_tlSource.valid := io.q.fire() && state === s_header && !relack
+  io.a_tlSource.valid := io.q.fire && state === s_header && !relack
   io.a_tlSource.bits := d.bits.source
-  io.c_tlSource.valid := io.q.fire() && state === s_header &&  relack
+  io.c_tlSource.valid := io.q.fire && state === s_header &&  relack
   io.c_tlSource.bits := d.bits.source
 
   // Construct the header beat

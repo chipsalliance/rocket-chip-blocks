@@ -45,10 +45,10 @@ class SourceD(info: ChipLinkInfo) extends Module
 
   val q_grant = q_opcode === TLMessages.Grant || q_opcode === TLMessages.GrantData
   val (_, q_last) = info.firstlast(io.q, Some(UInt(3)))
-  val d_first = RegEnable(state =/= s_data, io.q.fire())
+  val d_first = RegEnable(state =/= s_data, io.q.fire)
   val s_maybe_data = Mux(q_last, s_header, s_data)
 
-  when (io.q.fire()) {
+  when (io.q.fire) {
     switch (state) {
       is (s_header)   { state := Mux(q_grant, s_sink, s_maybe_data) }
       is (s_sink)     { state := s_maybe_data }

@@ -42,7 +42,7 @@ class ParitalExtractor[T <: TLDataChannel](gen: T) extends Module
     }
 
     // Update the FSM
-    when (io.i.fire()) {
+    when (io.i.fire) {
       shift := Mux(empty, i_data, wide >> 36)
       state := state - UInt(1)
       when (empty)   { state := UInt(8) }
@@ -93,7 +93,7 @@ class PartialInjector[T <: TLDataChannel](gen: T) extends Module
     }
 
     // Update the FSM
-    when (io.o.fire()) {
+    when (io.o.fire) {
       shift := wide >> 32
       state := state + UInt(1)
       when (full || last) {

@@ -47,10 +47,10 @@ class TX(info: ChipLinkInfo) extends Module
 
   // Consume TX credits and propagate pre-paid requests
   val ioX = (qX zip (tx.X zip txInc.bits.X)) map { case (q, (credit, gain)) =>
-    val first = RegEnable(q.bits.last, Bool(true), q.fire())
+    val first = RegEnable(q.bits.last, Bool(true), q.fire)
     val delta = credit -& q.bits.beats
     val allow = !first || (delta.asSInt >= SInt(0))
-    credit := Mux(q.fire() && first, delta, credit) + Mux(txInc.fire(), gain, UInt(0))
+    credit := Mux(q.fire && first, delta, credit) + Mux(txInc.fire, gain, UInt(0))
 
     val cq = Module(new ShiftQueue(q.bits.cloneType, 2)) // maybe flow?
     cq.io.enq.bits := q.bits
@@ -66,7 +66,7 @@ class TX(info: ChipLinkInfo) extends Module
   rxQ.io.enq.bits.data  := rxHeader
   rxQ.io.enq.bits.last  := Bool(true)
   rxQ.io.enq.bits.beats := UInt(1)
-  rx := Mux(rxQ.io.enq.fire(), rxLeft, rx) + Mux(rxInc.fire(), rxInc.bits, CreditBump(info.params, 0))
+  rx := Mux(rxQ.io.enq.fire, rxLeft, rx) + Mux(rxInc.fire, rxInc.bits, CreditBump(info.params, 0))
 
   // Include the F credit channel in arbitration
   val f = Wire(rxQ.io.deq)
@@ -79,7 +79,7 @@ class TX(info: ChipLinkInfo) extends Module
   val xmit = RegInit(UInt(0, width = xmitBits))
   val forceXmit = xmit === UInt(0)
   when (!forceXmit) { xmit := xmit - UInt(1) }
-  when (f.fire()) { xmit := ~UInt(0, width = xmitBits) }
+  when (f.fire) { xmit := ~UInt(0, width = xmitBits) }
 
   // Flow control for returned credits
   val allowReturn = !ioX.map(_.valid).reduce(_ || _) || forceXmit
