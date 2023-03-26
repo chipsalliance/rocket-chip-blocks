@@ -29,11 +29,12 @@ class UARTTx(c: UARTParams) extends Module {
   io.out := out
 
   val plusarg_tx = PlusArg("uart_tx", 1, "Enable/disable the TX to speed up simulation").orR
+  val plusarg_printf = PlusArg("uart_tx_printf", 0, "Enable/disable the TX").orR
 
   val busy = (counter =/= UInt(0))
   io.in.ready := io.en && !busy
   io.tx_busy := busy
-  when (io.in.fire()) {
+  when (io.in.fire() && plusarg_printf) {
     printf("UART TX (%x): %c\n", io.in.bits, io.in.bits)
   }
   when (io.in.fire() && plusarg_tx) {
