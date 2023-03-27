@@ -1,77 +1,135 @@
 package sifive.blocks.devices.uart
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 import freechips.rocketchip.util._
 
+/** UARTRx module recivies serial input from Rx port and transmits them to Rx fifo in parallel
+  *
+  * ==Datapass==
+  * Port(Rx) -> sample -> shifter -> Rx fifo -> TL bus
+  *
+  * ==Structure==
+  *  - baud rate divisor counter:
+  *   generate pulse, the enable signal for sample and data shift
+  *  - sample counter:
+  *   sample happens in middle
+  *  - data counter
+  *   control signals for data shift process
+  *  - sample and data shift logic
+  *
+  * ==State Machine==
+  * s_idle: detect start bit, init data_count and sample count, start pulse counter
+  * s_data: data reciving
+  *
+  * @note Rx fifo transmits Rx data to TL bus
+  */
 class UARTRx(c: UARTParams) extends Module {
-  val io = new Bundle {
-    val en = Bool(INPUT)
-    val in = Bits(INPUT, 1)
-    val out = Valid(Bits(width = c.dataBits))
-    val div = UInt(INPUT, c.divisorBits)
-    val enparity = c.includeParity.option(Bool(INPUT))
-    val parity = c.includeParity.option(Bool(INPUT))
-    val errorparity = c.includeParity.option(Bool(OUTPUT))
-    val data8or9 = (c.dataBits == 9).option(Bool(INPUT))
-  }
+  val io = IO(new Bundle {
+    /** enable signal from top */
+    val en = Input(Bool())
+    /** input data from rx port */
+    val in = Input(UInt(1.W))
+    /** output data to Rx fifo */
+    val out = Valid(UInt(c.dataBits.W))
+    /** divisor bits */
+    val div = Input(UInt(c.divisorBits.W))
+    /** parity enable */
+    val enparity = c.includeParity.option(Input(Bool()))
+    /** parity select
+      *
+      * 0 -> even parity
+      * 1 -> odd parity
+      */
+    val parity = c.includeParity.option(Input(Bool()))
+    /** parity error bit */
+    val errorparity = c.includeParity.option(Output(Bool()))
+    /** databit select
+      *
+      * ture -> 8
+      * false -> 9
+      */
+    val data8or9 = (c.dataBits == 9).option(Input(Bool()))
+  })
 
   if (c.includeParity)
     io.errorparity.get := false.B
 
-  val debounce = Reg(init = UInt(0, 2))
-  val debounce_max = (debounce === UInt(3))
-  val debounce_min = (debounce === UInt(0))
+  val debounce = RegInit(0.U(2.W))
+  val debounce_max = (debounce === 3.U)
+  val debounce_min = (debounce === 0.U)
 
-  val prescaler = Reg(UInt(width = c.divisorBits - c.oversample + 1))
-  val start = Wire(init = Bool(false))
-  val pulse = (prescaler === UInt(0))
+  val prescaler = Reg(UInt((c.divisorBits - c.oversample + 1).W))
+  val start = WireDefault(false.B)
+  /** enable signal for sampling and data shifting */
+  val pulse = (prescaler === 0.U)
 
   private val dataCountBits = log2Floor(c.dataBits+c.includeParity.toInt) + 1
-
-  val data_count = Reg(UInt(width = dataCountBits))
-  val data_last = (data_count === UInt(0))
-  val parity_bit = (data_count === UInt(1)) && io.enparity.getOrElse(false.B)
-  val sample_count = Reg(UInt(width = c.oversample))
-  val sample_mid = (sample_count === UInt((c.oversampleFactor - c.nSamples + 1) >> 1))
-  val sample_last = (sample_count === UInt(0))
-  val countdown = Cat(data_count, sample_count) - UInt(1)
+  /** init = data bits(8 or 9) + parity bit(0 or 1) + start bit(1) */
+  val data_count = Reg(UInt(dataCountBits.W))
+  val data_last = (data_count === 0.U)
+  val parity_bit = (data_count === 1.U) && io.enparity.getOrElse(false.B)
+  val sample_count = Reg(UInt(c.oversample.W))
+  val sample_mid = (sample_count === ((c.oversampleFactor - c.nSamples + 1) >> 1).U)
+  // todo unused
+  val sample_last = (sample_count === 0.U)
+  /** counter for data and sample
+    *
+    * {{{
+    * |    data_count    |   sample_count  |
+    * }}}
+    */
+  val countdown = Cat(data_count, sample_count) - 1.U
 
   // Compensate for the divisor not being a multiple of the oversampling period.
   // Let remainder k = (io.div % c.oversampleFactor).
   // For the last k samples, extend the sampling delay by 1 cycle.
   val remainder = io.div(c.oversample-1, 0)
   val extend = (sample_count < remainder) // Pad head: (sample_count > ~remainder)
+  /** prescaler reset signal
+    *
+    * conditions:
+    * {{{
+    * start : transmisson starts
+    * pulse : returns ture every pluse counter period
+    * }}}
+    */
   val restore = start || pulse
   val prescaler_in = Mux(restore, io.div >> c.oversample, prescaler)
-  val prescaler_next = prescaler_in - Mux(restore && extend, UInt(0), UInt(1))
-
-  val sample = Reg(Bits(width = c.nSamples))
+  val prescaler_next = prescaler_in - Mux(restore && extend, 0.U, 1.U)
+  /** buffer for sample results */
+  val sample = Reg(UInt(c.nSamples.W))
+  // take the majority bit of sample buffer
   val voter = Majority(sample.asBools.toSet)
-  val shifter = Reg(Bits(width = c.dataBits))
+  // data buffer
+  val shifter = Reg(UInt(c.dataBits.W))
 
-  val valid = Reg(init = Bool(false))
-  valid := Bool(false)
+  val valid = RegInit(false.B)
+  valid := false.B
   io.out.valid := valid
   io.out.bits := (if (c.dataBits == 8) shifter else Mux(io.data8or9.get, Cat(0.U, shifter(8,1)), shifter))
 
-  val (s_idle :: s_data :: Nil) = Enum(UInt(), 2)
-  val state = Reg(init = s_idle)
+  val (s_idle :: s_data :: Nil) = Enum(2)
+  val state = RegInit(s_idle)
 
   switch (state) {
     is (s_idle) {
+      // todo !(!io.in)?
       when (!(!io.in) && !debounce_min) {
-        debounce := debounce - UInt(1)
+        debounce := debounce - 1.U
       }
       when (!io.in) {
-        debounce := debounce + UInt(1)
+        debounce := debounce + 1.U
         when (debounce_max) {
           state := s_data
-          start := Bool(true)
+          start := true.B
           prescaler := prescaler_next
-          data_count := UInt(c.dataBits+1) + (if (c.includeParity) io.enparity.get else 0.U) - io.data8or9.getOrElse(false.B).asUInt
-          sample_count := UInt(c.oversampleFactor - 1)
+          // init data_count
+          data_count := (c.dataBits+1).U + (if (c.includeParity) io.enparity.get else 0.U) - io.data8or9.getOrElse(false.B).asUInt
+          // init sample_count = 15
+          sample_count := (c.oversampleFactor - 1).U
         }
       }
     }
@@ -79,6 +137,7 @@ class UARTRx(c: UARTParams) extends Module {
     is (s_data) {
       prescaler := prescaler_next
       when (pulse) {
+        // sample scan in
         sample := Cat(sample, io.in)
         data_count := countdown >> c.oversample
         sample_count := countdown(c.oversample-1, 0)
@@ -92,7 +151,7 @@ class UARTRx(c: UARTParams) extends Module {
             }
             when (data_last) {
               state := s_idle
-              valid := Bool(true)
+              valid := true.B
             } .elsewhen (!parity_bit) {
               // do not add parity bit to final rx data
               shifter := Cat(voter, shifter >> 1)
@@ -100,7 +159,7 @@ class UARTRx(c: UARTParams) extends Module {
           } else {
             when (data_last) {
               state := s_idle
-              valid := Bool(true)
+              valid := true.B
             } .otherwise {
               shifter := Cat(voter, shifter >> 1)
             }
@@ -111,7 +170,7 @@ class UARTRx(c: UARTParams) extends Module {
   }
 
   when (!io.en) {
-    debounce := UInt(0)
+    debounce := 0.U
   }
 }
 

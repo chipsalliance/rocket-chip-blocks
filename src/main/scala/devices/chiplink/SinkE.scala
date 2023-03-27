@@ -14,7 +14,7 @@ class SinkE(info: ChipLinkInfo) extends Module
     val d_clSink = UInt(INPUT, width = info.params.clSinkBits)
   }
 
-  io.d_tlSink.valid := io.e.fire()
+  io.d_tlSink.valid := io.e.fire
   io.d_tlSink.bits := io.e.bits.sink
 
   val header = info.encode(

@@ -1,68 +1,100 @@
 package sifive.blocks.devices.uart
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 import freechips.rocketchip.util._
 
+/** UARTTx module recives TL bus data from Tx fifo in parallel and transmits them to Port(Tx).
+  *
+  * ==datapass==
+  * TL bus -> Tx fifo -> io.in -> shifter  -> Port(Tx)
+  *
+  *  ==Structure==
+  *  - baud rate divisor counter:
+  *  generate pulse, the enable signal for data shift.
+  *  - data shift logic:
+  *  parallel in, serial out
+  *
+  * @note Tx fifo transmits TL bus data to Tx module
+  */
 class UARTTx(c: UARTParams) extends Module {
-  val io = new Bundle {
-    val en = Bool(INPUT)
-    val in = Decoupled(Bits(width = c.dataBits)).flip
-    val out = Bits(OUTPUT, 1)
-    val div = UInt(INPUT, c.divisorBits)
-    val nstop = UInt(INPUT, log2Up(c.stopBits))
-    val tx_busy = Bool(OUTPUT)
-    val enparity = c.includeParity.option(Bool(INPUT))
-    val parity = c.includeParity.option(Bool(INPUT))
-    val data8or9 = (c.dataBits == 9).option(Bool(INPUT))
-    val cts_n = c.includeFourWire.option(Bool(INPUT))
-  }
+  val io = IO(new Bundle {
+    /** Tx enable signal from top */
+    val en = Input(Bool())
+    /** data from Tx fifo */
+    val in = Flipped(Decoupled(UInt(c.dataBits.W)))
+    /** Tx port */
+    val out = Output(UInt(1.W))
+    /** divisor bits */
+    val div = Input(UInt(c.divisorBits.W))
+    /** number of stop bits */
+    val nstop = Input(UInt(log2Up(c.stopBits).W))
+    val tx_busy = Output(Bool())
+    /** parity enable */
+    val enparity = c.includeParity.option(Input(Bool()))
+    /** parity select
+      *
+      * 0 -> even parity
+      * 1 -> odd parity
+      */
+    val parity = c.includeParity.option(Input(Bool()))
+    /** databit select
+      *
+      * ture -> 8
+      * false -> 9
+      */
+    val data8or9 = (c.dataBits == 9).option(Input(Bool()))
+    /** clear to sned signal */
+    val cts_n = c.includeFourWire.option(Input(Bool()))
+  })
 
-  val prescaler = Reg(init = UInt(0, c.divisorBits))
-  val pulse = (prescaler === UInt(0))
+  val prescaler = RegInit(0.U(c.divisorBits.W))
+  val pulse = (prescaler === 0.U)
 
   private val n = c.dataBits + 1 + c.includeParity.toInt
-  val counter = Reg(init = UInt(0, log2Floor(n + c.stopBits) + 1))
-  val shifter = Reg(Bits(width = n))
-  val out = Reg(init = Bits(1, 1))
+  /** contains databit(8or9), start bit, stop bit and parity bit*/
+  val counter = RegInit(0.U((log2Floor(n + c.stopBits) + 1).W))
+  val shifter = Reg(UInt(n.W))
+  val out = RegInit(1.U(1.W))
   io.out := out
 
   val plusarg_tx = PlusArg("uart_tx", 1, "Enable/disable the TX to speed up simulation").orR
   val plusarg_printf = PlusArg("uart_tx_printf", 1, "Enable/disable the TX printf").orR
 
-  val busy = (counter =/= UInt(0))
+  val busy = (counter =/= 0.U)
   io.in.ready := io.en && !busy
   io.tx_busy := busy
-  when (io.in.fire() && plusarg_printf) {
+  when (io.in.fire && plusarg_printf) {
     printf("UART TX (%x): %c\n", io.in.bits, io.in.bits)
   }
-  when (io.in.fire() && plusarg_tx) {
+  when (io.in.fire && plusarg_tx) {
     if (c.includeParity) {
-      val includebit9 = if (c.dataBits == 9) Mux(io.data8or9.get, Bool(false), io.in.bits(8)) else Bool(false)
-      val parity = Mux(io.enparity.get, includebit9 ^ io.in.bits(7,0).asBools.reduce(_ ^ _) ^ io.parity.get, Bool(true))
+      val includebit9 = if (c.dataBits == 9) Mux(io.data8or9.get, false.B, io.in.bits(8)) else false.B
+      val parity = Mux(io.enparity.get, includebit9 ^ io.in.bits(7,0).asBools.reduce(_ ^ _) ^ io.parity.get, true.B)
       val paritywithbit9 = if (c.dataBits == 9) Mux(io.data8or9.get, Cat(1.U(1.W), parity), Cat(parity, io.in.bits(8))) 
                            else Cat(1.U(1.W), parity)
-      shifter := Cat(paritywithbit9, io.in.bits(7,0), Bits(0, 1))
+      shifter := Cat(paritywithbit9, io.in.bits(7,0), 0.U(1.W))
       counter := Mux1H((0 until c.stopBits).map(i =>
-        (io.nstop === UInt(i)) -> UInt(n + i + 1))) - (!io.enparity.get).asUInt - io.data8or9.getOrElse(0.U)
+        (io.nstop === i.U) -> (n + i + 1).U)) - (!io.enparity.get).asUInt - io.data8or9.getOrElse(0.U)
       // n = max number of databits configured at elaboration + start bit + parity bit 
       // n + i + 1 = n + stop bits + pad bit(when counter === 0 no bit is transmitted)
       // n + i + 1 - 8_bit_mode(if c.dataBits == 9) - parity_disabled_at_runtime
     }
     else {
       val bit9 = if (c.dataBits == 9) Mux(io.data8or9.get, 1.U(1.W), io.in.bits(8)) else 1.U(1.W)
-      shifter := Cat(bit9, io.in.bits(7,0), Bits(0, 1))
+      shifter := Cat(bit9, io.in.bits(7,0), 0.U(1.W))
       counter := Mux1H((0 until c.stopBits).map(i =>
-        (io.nstop === UInt(i)) -> UInt(n + i + 1))) - io.data8or9.getOrElse(0.U)
+        (io.nstop === i.U) -> (n + i + 1).U)) - io.data8or9.getOrElse(0.U)
     }
   }
   when (busy) {
-    prescaler := Mux(pulse || io.cts_n.getOrElse(false.B), io.div, prescaler - UInt(1))
+    prescaler := Mux(pulse || io.cts_n.getOrElse(false.B), io.div, prescaler - 1.U)
   }
   when (pulse && busy) {
-    counter := counter - UInt(1)
-    shifter := Cat(Bits(1, 1), shifter >> 1)
+    counter := counter - 1.U
+    shifter := Cat(1.U(1.W), shifter >> 1)
     out := shifter(0)
   }
 }

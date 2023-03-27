@@ -1,6 +1,6 @@
 package sifive.blocks.devices.uart
 
-import freechips.rocketchip.config.Field
+import org.chipsalliance.cde.config.Field
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.subsystem.{BaseSubsystem, PeripheryBusKey}
 

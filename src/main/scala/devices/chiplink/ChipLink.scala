@@ -2,7 +2,7 @@ package sifive.blocks.devices.chiplink
 
 import Chisel.{defaultCompileOptions => _, _}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
-import freechips.rocketchip.config.{Field, Parameters}
+import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.tilelink._
 import freechips.rocketchip.devices.tilelink._
@@ -81,7 +81,8 @@ class ChipLink(val params: ChipLinkParams)(implicit p: Parameters) extends LazyM
       TLC  = AddressSet.unify(tlc.flatMap(_.address)))
   }
 
-  lazy val module = new LazyModuleImp(this) {
+  lazy val module = new Impl
+  class Impl extends LazyModuleImp(this) {
     val io = IO(new Bundle {
       val bypass = Bool(OUTPUT)
       // When not syncTX, these drive the TX domain

@@ -4,7 +4,7 @@ import Chisel.{defaultCompileOptions => _, _}
 import chisel3.{VecInit}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
-import freechips.rocketchip.config.{Field, Parameters}
+import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.interrupts._
 import freechips.rocketchip.prci._

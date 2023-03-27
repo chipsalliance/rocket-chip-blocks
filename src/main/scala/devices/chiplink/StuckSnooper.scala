@@ -3,7 +3,7 @@ package sifive.blocks.devices.chiplink
 
 import Chisel.{defaultCompileOptions => _, _}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
-import freechips.rocketchip.config.{Field, Parameters}
+import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.tilelink._
 import freechips.rocketchip.util._
@@ -59,7 +59,7 @@ class StuckSnooper(uFn: Seq[TLClientPortParameters] => TLClientPortParameters)(i
 
     //Enable probes to in1 only after it issues an acquire
     val divertprobes = RegInit(true.B)
-    divertprobes := divertprobes && ~(in1.a.fire() && (in1.a.bits.opcode === TLMessages.AcquireBlock || in1.a.bits.opcode === TLMessages.AcquirePerm))
+    divertprobes := divertprobes && ~(in1.a.fire && (in1.a.bits.opcode === TLMessages.AcquireBlock || in1.a.bits.opcode === TLMessages.AcquirePerm))
     val bypass_c = Wire(Bool()) 
     bypass_c := bypass || divertprobes
 

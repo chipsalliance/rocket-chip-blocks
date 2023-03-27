@@ -3,7 +3,7 @@ package sifive.blocks.devices.msi
 
 import Chisel.{defaultCompileOptions => _, _}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
-import freechips.rocketchip.config.Parameters
+import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.interrupts._
 import freechips.rocketchip.tilelink._
@@ -60,14 +60,14 @@ class MSIMaster(targets: Seq[MSITarget])(implicit p: Parameters) extends LazyMod
       data       = data << (shift << 3))._2
 
     // When A is sent, toggle our model of the remote state
-    when (io.a.fire()) {
+    when (io.a.fire) {
       remote := remote ^ select
       busy   := Bool(true)
     }
 
     // Sink D messages to clear busy
     io.d.ready := Bool(true)
-    when (io.d.fire()) {
+    when (io.d.fire) {
       busy := Bool(false)
     }
 

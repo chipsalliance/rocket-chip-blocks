@@ -2,7 +2,7 @@ package sifive.blocks.devices.spi
 
 import Chisel.{defaultCompileOptions => _, _}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
-import freechips.rocketchip.config.Parameters
+import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.regmapper._
 import freechips.rocketchip.tilelink._
@@ -65,7 +65,7 @@ class SPIFlashTopModule(c: SPIFlashParamsBase, outer: TLSPIFlashBase)
   val a = Reg(f.a.bits)
   val a_msb = log2Ceil(c.fSize) - 1
 
-  when (f.a.fire()) {
+  when (f.a.fire) {
     a := f.a.bits
   }
 

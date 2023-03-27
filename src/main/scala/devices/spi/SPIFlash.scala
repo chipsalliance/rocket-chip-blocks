@@ -85,7 +85,7 @@ class SPIFlashMap(c: SPIFlashParamsBase) extends Module {
   val cnt_done = cnt_last || cnt_zero
   when (cnt_en) {
     io.link.tx.valid := !cnt_zero
-    when (io.link.tx.fire()) {
+    when (io.link.tx.fire) {
       cnt := cnt - UInt(1)
     }
   }
@@ -160,7 +160,7 @@ class SPIFlashMap(c: SPIFlashParamsBase) extends Module {
     is (s_data_post) {
       io.link.tx.valid := Bool(false)
       io.data.valid := io.link.rx.valid
-      when (io.data.fire()) {
+      when (io.data.fire) {
         state := s_idle
       }
     }

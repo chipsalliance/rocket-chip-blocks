@@ -32,7 +32,7 @@ class SinkA(info: ChipLinkInfo) extends Module
   val s_address1 = UInt(2, width = 2)
   val s_data     = UInt(3, width = 2)
 
-  when (io.q.fire()) {
+  when (io.q.fire) {
     switch (state) {
       is (s_header)   { state := s_address0 }
       is (s_address0) { state := s_address1 }
