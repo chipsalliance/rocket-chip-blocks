@@ -1,6 +1,6 @@
 package sifive.blocks.devices.spi
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import org.chipsalliance.cde.config.Field
 import freechips.rocketchip.subsystem.{BaseSubsystem}

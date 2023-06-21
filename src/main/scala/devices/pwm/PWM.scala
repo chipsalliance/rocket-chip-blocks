@@ -1,9 +1,7 @@
 package sifive.blocks.devices.pwm
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
-import Chisel.ImplicitConversions._
-import chisel3.Module
 
 import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
@@ -23,13 +21,13 @@ import sifive.blocks.util._
 // Core PWM Functionality  & Register Interface
 class PWMTimer(val ncmp: Int = 4, val cmpWidth: Int = 16, val prefix: String = "pwm") extends Module with GenericTimer {
 
-  def orR(v: Vec[Bool]): Bool = v.foldLeft(Bool(false))( _||_ )
+  def orR(v: Vec[Bool]): Bool = v.foldLeft(false.B)( _||_ )
   protected def countWidth = ((1 << scaleWidth) - 1) + cmpWidth
-  protected lazy val countAlways = RegEnable(io.regs.cfg.write.countAlways, Bool(false), io.regs.cfg.write_countAlways && unlocked)
+  protected lazy val countAlways = RegEnable(io.regs.cfg.write.countAlways, false.B, io.regs.cfg.write_countAlways && unlocked)
   protected lazy val feed = count.carryOut(scale + UInt(cmpWidth))
   protected lazy val countEn = Wire(Bool())
-  override protected lazy val oneShot = RegEnable(io.regs.cfg.write.running && !countReset, Bool(false), (io.regs.cfg.write_running && unlocked) || countReset)
-  override protected lazy val extra: Vec[Bool]  = RegEnable(io.regs.cfg.write.extra, Vec.fill(maxcmp){false.B}, orR(io.regs.cfg.write_extra) && unlocked)
+  override protected lazy val oneShot = RegEnable(io.regs.cfg.write.running && !countReset, false.B, (io.regs.cfg.write_running && unlocked) || countReset)
+  override protected lazy val extra: Vec[Bool]  = RegEnable(io.regs.cfg.write.extra, VecInit.fill(maxcmp){false.B}, orR(io.regs.cfg.write_extra) && unlocked)
   override protected lazy val center: Vec[Bool] = RegEnable(io.regs.cfg.write.center, orR(io.regs.cfg.write_center) && unlocked)
   override protected lazy val gang: Vec[Bool] = RegEnable(io.regs.cfg.write.gang, orR(io.regs.cfg.write_gang) && unlocked)
   override protected lazy val deglitch = RegEnable(io.regs.cfg.write.deglitch, io.regs.cfg.write_deglitch && unlocked)(0)
@@ -38,7 +36,7 @@ class PWMTimer(val ncmp: Int = 4, val cmpWidth: Int = 16, val prefix: String = "
     val doSticky = Reg(next = (deglitch && !countReset) || sticky)
     val sel = (0 until ncmp).map(i => s(cmpWidth-1) && center(i))
     val reg = Reg(Vec(ncmp, Bool()))
-    reg := (sel & elapsed) | (~sel & (elapsed | (Vec.fill(ncmp){doSticky} & reg)))
+    reg := (sel & elapsed) | (~sel & (elapsed | (VecInit.fill(ncmp){doSticky} & reg)))
     when (orR(io.regs.cfg.write_ip) && unlocked) { reg := io.regs.cfg.write.ip }
     reg
   }
@@ -60,7 +58,7 @@ class PWMTimer(val ncmp: Int = 4, val cmpWidth: Int = 16, val prefix: String = "
   val ipU = ip.asUInt
   val gangU = gang.asUInt
 
-  io.gpio := io.gpio.fromBits((ipU & ~(gangU & Cat(ipU(0), ipU >> 1))) ^ invert)
+  io.gpio := ((ipU & ~(gangU & Cat(ipU(0), ipU >> 1))) ^ invert).asTypeOf(io.gpio)
   countEn := countAlways || oneShot
 }
 

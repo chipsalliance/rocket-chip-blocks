@@ -1,6 +1,7 @@
 package sifive.blocks.devices.stream
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
+import chisel3.util.{Decoupled, log2Up, Queue}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 import org.chipsalliance.cde.config.{Field, Parameters}
@@ -21,8 +22,8 @@ case class PseudoStreamParams(
 }
 
 class PseudoStreamChannelIO(val params: PseudoStreamParams) extends Bundle {
-  val txq = Decoupled(UInt(width = params.dataBits))
-  val rxq = Decoupled(UInt(width = params.dataBits)).flip
+  val txq = Decoupled(UInt(params.dataBits.W))
+  val rxq = Flipped(Decoupled(UInt(params.dataBits.W)))
 }
 
 class PseudoStreamPortIO(val params: PseudoStreamParams) extends Bundle {

@@ -1,6 +1,7 @@
 package sifive.blocks.devices.chiplink
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
+import chisel3.util.{Decoupled}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.tilelink._
 import freechips.rocketchip.util._
@@ -9,18 +10,18 @@ class SourceB(info: ChipLinkInfo) extends Module
 {
   val io = new Bundle {
     val b = Decoupled(new TLBundleB(info.edgeIn.bundle))
-    val q = Decoupled(UInt(width = info.params.dataBits)).flip
+    val q = Flipped(Decoupled(UInt(width = info.params.dataBits)))
   }
 
   // Find the optional cache (at most one)
   val cache = info.edgeIn.client.clients.filter(_.supports.probe).headOption
 
   // A simple FSM to generate the packet components
-  val state = RegInit(UInt(0, width = 2))
-  val s_header   = UInt(0, width = 2)
-  val s_address0 = UInt(1, width = 2)
-  val s_address1 = UInt(2, width = 2)
-  val s_data     = UInt(3, width = 2)
+  val state = RegInit(0.U(2.W))
+  val s_header   = 0.U(2.W)
+  val s_address0 = 1.U(2.W)
+  val s_address1 = 2.U(2.W)
+  val s_data     = 3.U(2.W)
 
   private def hold(key: UInt)(data: UInt) = {
     val enable = state === key
@@ -35,7 +36,7 @@ class SourceB(info: ChipLinkInfo) extends Module
   val q_address0 = hold(s_address0)(io.q.bits)
   val q_address1 = hold(s_address1)(io.q.bits)
 
-  val (_, q_last) = info.firstlast(io.q, Some(UInt(1)))
+  val (_, q_last) = info.firstlast(io.q, Some(1.U))
   val q_hasData = !q_opcode(2)
   val b_first = RegEnable(state =/= s_data, io.q.fire)
 
@@ -57,11 +58,11 @@ class SourceB(info: ChipLinkInfo) extends Module
   b.bits.opcode  := q_opcode
   b.bits.param   := q_param
   b.bits.size    := q_size
-  b.bits.source  := UInt(cache.map(_.sourceId.start).getOrElse(0))
+  b.bits.source  := (cache.map(_.sourceId.start).getOrElse(0)).U
   b.bits.address := Cat(q_address1, q_address0)
   b.bits.mask    := MaskGen(q_address0, q_size, info.params.dataBytes)
   b.bits.data    := io.q.bits
-  b.bits.corrupt := Bool(false)
+  b.bits.corrupt := false.B
 
   val xmit = q_last || state === s_data
   b.valid := io.q.valid &&  xmit

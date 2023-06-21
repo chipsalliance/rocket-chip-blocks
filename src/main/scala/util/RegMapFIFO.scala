@@ -1,6 +1,6 @@
 package sifive.blocks.util
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.regmapper._
 
@@ -13,18 +13,18 @@ object NonBlockingEnqueue {
     require(regWidth > enqWidth)
     Seq(
       RegField(enqWidth,
-        RegReadFn(UInt(0)),
+        RegReadFn(0.U),
         RegWriteFn((valid, data) => {
           enq.valid := valid && !quash
           enq.bits := data
-          Bool(true)
+          true.B
         }), RegFieldDesc("data", "Transmit data", access=RegFieldAccessType.W)),
       RegField(regWidth - enqWidth - 1),
       RegField(1,
         !enq.ready,
         RegWriteFn((valid, data) =>  {
           quash := valid && data(0)
-          Bool(true)
+          true.B
         }), RegFieldDesc("full", "Transmit FIFO full", access=RegFieldAccessType.R, volatile=true)))
   }
 }
@@ -39,7 +39,7 @@ object NonBlockingDequeue {
       RegField.r(deqWidth,
         RegReadFn(ready => {
           deq.ready := ready
-          (Bool(true), deq.bits)
+          (true.B, deq.bits)
         }), RegFieldDesc("data", "Receive data", volatile=true)),
       RegField(regWidth - deqWidth - 1),
       RegField.r(1, !deq.valid,

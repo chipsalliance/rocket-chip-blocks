@@ -1,7 +1,8 @@
 
 package sifive.blocks.devices.msi
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._
+import chisel3.util.{Mux1H}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.diplomacy._
@@ -42,39 +43,39 @@ class MSIMaster(targets: Seq[MSITarget])(implicit p: Parameters) extends LazyMod
     require (interrupts.size <= targetMap.size, s"MSIMaster ${name} has more interrupts (${interrupts.size}) than addresses to use (${targetMap.size})")
     require (intNode.out.isEmpty, s"MSIMaster ${name} intNode is not a source!")
 
-    val busy    = RegInit(Bool(false))
-    val remote  = RegInit(UInt(0, width=interrupts.size max 1))
-    val local   = if (interrupts.isEmpty) UInt(0) else Cat(interrupts.reverse)
+    val busy    = RegInit(false.B)
+    val remote  = RegInit(0.U((interrupts.size max 1).W))
+    val local   = if (interrupts.isEmpty) 0.U else Cat(interrupts.reverse)
     val pending = remote ^ local
     val select  = ~(leftOR(pending) << 1) & pending
     val address = Mux1H(select, targetMap)
     val lowBits = log2Ceil(masterEdge.manager.beatBytes)
-    val shift   = if (lowBits > 0) address(lowBits-1, 0) else UInt(0)
+    val shift   = if (lowBits > 0) address(lowBits-1, 0) else 0.U
     val data    = (select & local).orR
 
     io.a.valid := pending.orR && !busy
     io.a.bits := masterEdge.Put(
-      fromSource = UInt(0),
+      fromSource = 0.U,
       toAddress  = address,
-      lgSize     = UInt(0),
+      lgSize     = 0.U,
       data       = data << (shift << 3))._2
 
     // When A is sent, toggle our model of the remote state
     when (io.a.fire) {
       remote := remote ^ select
-      busy   := Bool(true)
+      busy   := true.B
     }
 
     // Sink D messages to clear busy
-    io.d.ready := Bool(true)
+    io.d.ready := true.B
     when (io.d.fire) {
-      busy := Bool(false)
+      busy := false.B
     }
 
     // Tie off unused channels
-    io.b.ready := Bool(false)
-    io.c.valid := Bool(false)
-    io.e.valid := Bool(false)
+    io.b.ready := false.B
+    io.c.valid := false.B
+    io.e.valid := false.B
   }
 }
 

@@ -1,8 +1,7 @@
 package sifive.blocks.devices.mockaon
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
-import chisel3.Module
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.regmapper._
 import freechips.rocketchip.tilelink._
@@ -21,13 +20,13 @@ case class MockAONParams(
 }
 
 class MockAONPMUIO extends Bundle {
-  val vddpaden = Bool(OUTPUT)
-  val dwakeup = Bool(INPUT)
+  val vddpaden = Output(Bool())
+  val dwakeup = Input(Bool())
 }
 
 class MockAONMOffRstIO extends Bundle {
-  val hfclkrst = Bool(OUTPUT)
-  val corerst = Bool(OUTPUT)
+  val hfclkrst = Output(Bool())
+  val corerst = Output(Bool())
 }
 
 trait HasMockAONBundleContents extends Bundle {
@@ -37,15 +36,15 @@ trait HasMockAONBundleContents extends Bundle {
 
   // This goes out to wrapper
   // to be combined to create aon_rst.
-  val wdog_rst = Bool(OUTPUT)
+  val wdog_rst = Output(Bool())
 
   // This goes out to wrapper
   // and comes back as our clk
-  val lfclk = Clock(OUTPUT)
+  val lfclk = Output(Clock())
 
   val pmu = new MockAONPMUIO
 
-  val lfextclk = Clock(INPUT)
+  val lfextclk = Input(Clock())
 
   val resetCauses = new ResetCauses().asInput
 }
@@ -64,7 +63,7 @@ trait HasMockAONModuleContents extends Module with HasRegMap {
   io.moff <> pmu.io.control
   io.pmu.vddpaden := pmu.io.control.vddpaden
   pmu.io.wakeup.dwakeup := io.pmu.dwakeup
-  pmu.io.wakeup.awakeup := Bool(false)
+  pmu.io.wakeup.awakeup := false.B
   pmu.io.wakeup.rtc := rtc.io.ip(0)
   pmu.io.resetCauses := io.resetCauses
   val pmuRegMap = {
@@ -83,7 +82,7 @@ trait HasMockAONModuleContents extends Module with HasRegMap {
   // If there are multiple lfclks to choose from, we can mux them here.
   io.lfclk := io.lfextclk
 
-  val backupRegs = Seq.fill(c.nBackupRegs)(Reg(UInt(width = c.regBytes * 8)))
+  val backupRegs = Seq.fill(c.nBackupRegs)(Reg(UInt((c.regBytes * 8).W)))
   val backupRegMap =
     for ((reg, i) <- backupRegs.zipWithIndex)
       yield (c.backupRegOffset + c.regBytes*i) -> Seq(RegField(reg.getWidth, RegReadFn(reg), RegWriteFn(reg)))

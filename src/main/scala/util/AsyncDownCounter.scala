@@ -1,27 +1,27 @@
 package sifive.blocks.util
 
-import Chisel._
-import chisel3.{BlackBox, RawModule, withClockAndReset}
+import chisel3._ 
+import chisel3.util.{log2Ceil}
 import freechips.rocketchip.util.{AsyncResetRegVec, AsyncResetReg}
 
 class AsyncDownCounter(clock: Clock, reset: Bool, value: Int)
     extends Module (_clock = clock, _reset = reset) {
   val io = new Bundle {
-    val done = Bool(OUTPUT)
+    val done = Output(Bool())
   }
 
-  val count_next = Wire(UInt(width = log2Ceil(value)))
+  val count_next = Wire(UInt(log2Ceil(value).W))
   val count = AsyncResetReg(
     updateData = count_next,
     resetData = value,
     name = "count_reg")
   val done_reg = AsyncResetReg(
-    updateData = (count === UInt(0)),
+    updateData = (count === 0.U),
     resetData = 0,
     name = "done_reg")
 
-  when (count > UInt(0)) {
-    count_next := count - UInt(1)
+  when (count > 0.U) {
+    count_next := count - 1.U
   } .otherwise {
     count_next := count
   }

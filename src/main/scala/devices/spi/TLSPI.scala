@@ -1,6 +1,6 @@
 package sifive.blocks.devices.spi
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.diplomacy._
@@ -64,7 +64,7 @@ case class SPIParams(
 class SPITopModule(c: SPIParamsBase, outer: TLSPIBase)
     extends LazyModuleImp(outer) {
 
-  val ctrl = Reg(init = SPIControl.init(c))
+  val ctrl = RegInit(SPIControl.init(c))
   val fifo = Module(new SPIFIFO(c))
   val mac = Module(new SPIMedia(c))
 
@@ -78,7 +78,7 @@ class SPITopModule(c: SPIParamsBase, outer: TLSPIBase)
   mac.io.ctrl.dla := ctrl.dla
   mac.io.ctrl.cs <> ctrl.cs
 
-  val ie = Reg(init = new SPIInterrupts().fromBits(Bits(0)))
+  val ie = RegInit(0.U.asTypeOf(new SPIInterrupts())) 
   val ip = fifo.io.ip
   outer.interrupts(0) := (ip.txwm && ie.txwm) || (ip.rxwm && ie.rxwm)
 

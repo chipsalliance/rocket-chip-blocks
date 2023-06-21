@@ -1,7 +1,6 @@
 package sifive.blocks.devices.gpio
 
-import Chisel.{defaultCompileOptions => _, _}
-import chisel3.{VecInit}
+import chisel3._ 
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 import org.chipsalliance.cde.config.{Field, Parameters}
@@ -32,8 +31,8 @@ class GPIOPortIO(val c: GPIOParams) extends Bundle {
 }
 
 class IOFPortIO(val w: Int) extends Bundle {
-  val iof_0 = Vec(w, new IOFPin).flip
-  val iof_1 = Vec(w, new IOFPin).flip
+  val iof_0 = Flipped(Vec(w, new IOFPin))
+  val iof_1 = Flipped(Vec(w, new IOFPin))
 }
 
 case class GPIOParams(
@@ -73,39 +72,39 @@ abstract class GPIO(busWidthBytes: Int, c: GPIOParams)(implicit p: Parameters)
   // -------------------------------------------------
 
   // SW Control only.
-  val portReg = Reg(init = UInt(0, c.width))
+  val portReg = RegInit(0.U(c.width))
 
   val oeReg  = Module(new AsyncResetRegVec(c.width, 0))
   val pueReg = Module(new AsyncResetRegVec(c.width, 0))
-  val dsReg  = RegInit(VecInit(Seq.fill(c.dsWidth)(UInt(0, c.width))))
+  val dsReg  = RegInit(VecInit(Seq.fill(c.dsWidth)(0.U(c.width))))
   val ieReg  = Module(new AsyncResetRegVec(c.width, 0))
-  val psReg  = Reg(init = UInt(0, c.width))
+  val psReg  = RegInit(0.U(c.width))
   val poeReg = Module(new AsyncResetRegVec(c.width, 0))
 
   // Synchronize Input to get valueReg
-  val inVal = Wire(UInt(0, width=c.width))
+  val inVal = WireDefault(0.U(c.width.W))
   inVal := Vec(port.pins.map(_.i.ival)).asUInt
   val inSyncReg  = SynchronizerShiftReg(inVal, 3, Some("inSyncReg"))
-  val valueReg   = Reg(init = UInt(0, c.width), next = inSyncReg)
+  val valueReg   = RegNext(inSyncReg, 0.U(c.width.W))
 
   // Interrupt Configuration
-  val highIeReg = Reg(init = UInt(0, c.width))
-  val lowIeReg  = Reg(init = UInt(0, c.width))
-  val riseIeReg = Reg(init = UInt(0, c.width))
-  val fallIeReg = Reg(init = UInt(0, c.width))
-  val highIpReg = Reg(init = UInt(0, c.width))
-  val lowIpReg  = Reg(init = UInt(0, c.width))
-  val riseIpReg = Reg(init = UInt(0, c.width))
-  val fallIpReg = Reg(init = UInt(0, c.width))
-  val passthruHighIeReg = Reg(init = UInt(0, c.width))
-  val passthruLowIeReg  = Reg(init = UInt(0, c.width))
+  val highIeReg = RegInit(0.U(c.width.W))
+  val lowIeReg  = RegInit(0.U(c.width.W))
+  val riseIeReg = RegInit(0.U(c.width.W))
+  val fallIeReg = RegInit(0.U(c.width.W))
+  val highIpReg = RegInit(0.U(c.width.W))
+  val lowIpReg  = RegInit(0.U(c.width.W))
+  val riseIpReg = RegInit(0.U(c.width.W))
+  val fallIpReg = RegInit(0.U(c.width.W))
+  val passthruHighIeReg = RegInit(0.U(c.width.W))
+  val passthruLowIeReg  = RegInit(0.U(c.width.W))
 
   // HW IO Function
   val iofEnReg  = Module(new AsyncResetRegVec(c.width, 0))
-  val iofSelReg = Reg(init = UInt(0, c.width))
+  val iofSelReg = RegInit(0.U(c.width.W))
   
   // Invert Output
-  val xorReg    = Reg(init = UInt(0, c.width))
+  val xorReg    = RegInit(0.U(c.width.W))
 
   //--------------------------------------------------
   // CSR Access Logic (most of this section is boilerplate)

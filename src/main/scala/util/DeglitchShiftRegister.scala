@@ -1,14 +1,15 @@
 package sifive.blocks.util
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
+import chisel3.util.{ShiftRegisters}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 //Allows us to specify a different clock for a shift register
 // and to force input to be high for > 1 cycle.
 class DeglitchShiftRegister(shift: Int) extends Module {
   val io = new Bundle {
-    val d = Bool(INPUT)
-    val q = Bool(OUTPUT)
+    val d = Input(Bool())
+    val q = Output(Bool())
   }
   val sync = ShiftRegister(io.d, shift)
   val last = ShiftRegister(sync, 1)
@@ -21,7 +22,7 @@ object DeglitchShiftRegister {
     val deglitch = Module (new DeglitchShiftRegister(shift))
     name.foreach(deglitch.suggestName(_))
     deglitch.clock := clock
-    deglitch.reset := Bool(false)
+    deglitch.reset := false.B
     deglitch.io.d := d
     deglitch.io.q
   }

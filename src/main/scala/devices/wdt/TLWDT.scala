@@ -1,9 +1,7 @@
 package sifive.blocks.devices.wdt
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
-import Chisel.ImplicitConversions._
-import chisel3.Module
 
 import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
@@ -27,8 +25,8 @@ case class WDTParams(
   regBytes: Int = 4) extends DeviceParams
 
 class WDTPortIO(val c: WDTParams) extends Bundle {
-  val corerst = Bool(INPUT)
-  val rst = Bool(OUTPUT)
+  val corerst = Input(Bool())
+  val rst = Output(Bool())
 }
 
 abstract class WDT(busWidthBytes: Int, val params: WDTParams)(implicit p: Parameters)

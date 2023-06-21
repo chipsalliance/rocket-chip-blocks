@@ -1,6 +1,7 @@
 package sifive.blocks.devices.spi
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
+import chisel3.util.{log2Ceil, isPow2}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.diplomacy._
@@ -58,11 +59,11 @@ class SPIFlashTopModule(c: SPIFlashParamsBase, outer: TLSPIFlashBase)
 
   private val (f, _) = outer.fnode.in(0)
   // Tie unused channels
-  f.b.valid := Bool(false)
-  f.c.ready := Bool(true)
-  f.e.ready := Bool(true)
+  f.b.valid := false.B
+  f.c.ready := true.B
+  f.e.ready := true.B
 
-  val a = Reg(f.a.bits)
+  val a = RegNext(f.a.bits)
   val a_msb = log2Ceil(c.fSize) - 1
 
   when (f.a.fire) {
@@ -78,8 +79,8 @@ class SPIFlashTopModule(c: SPIFlashParamsBase, outer: TLSPIFlashBase)
   f.d.valid := flash.io.data.valid
   flash.io.data.ready := f.d.ready
 
-  val insn = Reg(init = SPIFlashInsn.init(c))
-  val flash_en = Reg(init = Bool(true))
+  val insn = RegInit(SPIFlashInsn.init(c))
+  val flash_en = RegInit(true.B)
 
   flash.io.ctrl.insn := insn
   flash.io.ctrl.fmt <> ctrl.fmt

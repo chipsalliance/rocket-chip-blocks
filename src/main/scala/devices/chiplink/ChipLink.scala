@@ -1,6 +1,6 @@
 package sifive.blocks.devices.chiplink
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
@@ -84,12 +84,12 @@ class ChipLink(val params: ChipLinkParams)(implicit p: Parameters) extends LazyM
   lazy val module = new Impl
   class Impl extends LazyModuleImp(this) {
     val io = IO(new Bundle {
-      val bypass = Bool(OUTPUT)
+      val bypass = Output(Bool())
       // When not syncTX, these drive the TX domain
-      val c2b_clk = Clock(INPUT)
-      val c2b_rst = Bool(INPUT)
+      val c2b_clk = Input(Clock())
+      val c2b_rst = Input(Bool())
       // If fpgaReset, we need a pulse that arrives before b2c_clk locks
-      val fpga_reset = if (params.fpgaReset) Some(Bool(INPUT)) else None
+      val fpga_reset = if (params.fpgaReset) Some(Input(Bool())) else None
     })
     val port = ioNode.bundle
 
@@ -165,7 +165,7 @@ class ChipLink(val params: ChipLinkParams)(implicit p: Parameters) extends LazyM
     io.fpga_reset match {
       case None =>
         // b2c.rst is actually synchronous to b2c.clk, so one flop is enough
-        rx.reset := AsyncResetReg(Bool(false), port.b2c.clk, port.b2c.rst, true, None)
+        rx.reset := AsyncResetReg(false.B, port.b2c.clk, port.b2c.rst, true, None)
       case Some(resetPulse) =>
         // For high performance, FPGA IO buffer registers must feed IO into D, not reset
         // However, FPGA registers also support an initial block to generate a reset pulse

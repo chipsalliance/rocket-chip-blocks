@@ -1,6 +1,6 @@
 package sifive.blocks.devices.mockaon
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.diplomacy._
@@ -52,8 +52,8 @@ class MockAONWrapper(w: Int, c: MockAONParams)(implicit p: Parameters) extends L
   lazy val module = new Impl
   class Impl extends LazyModuleImp(this) {
     val io = IO(new MockAONWrapperBundle {
-      val rtc  = Clock(OUTPUT)
-      val ndreset = Bool(INPUT)
+      val rtc  = Output(Clock())
+      val ndreset = Input(Bool())
     })
 
     val aon_io = aon.module.io
@@ -64,12 +64,12 @@ class MockAONWrapper(w: Int, c: MockAONParams)(implicit p: Parameters) extends L
     // -----------------------------------------------
 
     // ERST
-    val erst = ~pins.erst_n.inputPin(pue = Bool(true))
+    val erst = ~pins.erst_n.inputPin(pue = true.B)
     aon_io.resetCauses.erst := erst
     aon_io.resetCauses.wdogrst := aon_io.wdog_rst
 
     // PORRST
-    val porrst = Bool(false) // TODO
+    val porrst = false.B // TODO
     aon_io.resetCauses.porrst := porrst
 
     //--------------------------------------------------
@@ -90,7 +90,7 @@ class MockAONWrapper(w: Int, c: MockAONParams)(implicit p: Parameters) extends L
     // Note that the actual mux lives inside AON itself.
     // Therefore, the lfclk which comes out of AON is the
     // true clock that AON and AONWrapper are running off of.
-    val lfextclk = pins.lfextclk.inputPin(pue=Bool(true))
+    val lfextclk = pins.lfextclk.inputPin(pue=true.B)
     aon_io.lfextclk := lfextclk.asClock
 
     // Drive AON's clock and Reset
@@ -121,13 +121,13 @@ class MockAONWrapper(w: Int, c: MockAONParams)(implicit p: Parameters) extends L
     // Note that aon.moff.corerst is synchronous
     // to aon.module.clock, so this is safe.
     isolation.module.io.iso_out := aon.module.io.moff.corerst
-    isolation.module.io.iso_in  := Bool(true)
+    isolation.module.io.iso_in  := true.B
 
     //--------------------------------------------------
     // PMU <--> pins Interface
     //--------------------------------------------------
 
-    val dwakeup_n_async = pins.pmu.dwakeup_n.inputPin(pue=Bool(true))
+    val dwakeup_n_async = pins.pmu.dwakeup_n.inputPin(pue=true.B)
 
     val dwakeup_deglitch = Module (new DeglitchShiftRegister(3))
     dwakeup_deglitch.clock := lfclk
@@ -151,9 +151,9 @@ class MockAONWrapper(w: Int, c: MockAONParams)(implicit p: Parameters) extends L
 
 class IsoZero extends Module {
   val io = new Bundle {
-    val in = Bool(INPUT)
-    val iso = Bool(INPUT)
-    val out = Bool(OUTPUT)
+    val in = Input(Bool())
+    val iso = Input(Bool())
+    val out = Output(Bool())
   }
   io.out := io.in & ~io.iso
 }

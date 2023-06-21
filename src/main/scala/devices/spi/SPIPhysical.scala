@@ -1,20 +1,21 @@
 package sifive.blocks.devices.spi
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
+import chisel3.util.{Decoupled, Valid, Mux1H}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.util._
 
 class SPIMicroOp(c: SPIParamsBase) extends SPIBundle(c) {
-  val fn = Bits(width = 1)
+  val fn = Bits(1.W)
   val stb = Bool()
-  val cnt = UInt(width = c.countBits)
-  val data = Bits(width = c.frameBits)
+  val cnt = UInt(c.countBits.W)
+  val data = Bits(c.frameBits.W)
   val disableOE = c.oeDisableDummy.option(Bool()) // disable oe during dummy cycles in flash mode
 }
 
 object SPIMicroOp {
-  def Transfer = UInt(0, 1)
-  def Delay    = UInt(1, 1)
+  def Transfer = 0.U(1.W)
+  def Delay    = 1.U(1.W)
 }
 
 //Coarse delay is the number of system-clock cycles that can be added
@@ -23,13 +24,13 @@ object SPIMicroOp {
 //difference between send and received SPI data.
 //Fine delay is typically achieved through foundry specific delay buffers
 class SPIExtraDelay(c: SPIParamsBase) extends SPIBundle(c) {
-  val coarse = UInt(width = c.divisorBits)
-  val fine = UInt(width = c.fineDelayBits)
+  val coarse = UInt(c.divisorBits.W)
+  val fine = UInt(c.fineDelayBits.W)
 }
 //Sample delay reflects minimum sequential delay that exists between 
 //a slave and the SPI controller
 class SPISampleDelay(c: SPIParamsBase) extends SPIBundle(c) {
-  val sd = UInt(width = c.sampleDelayBits)
+  val sd = UInt(c.sampleDelayBits.W)
 }
 
 class SPIPhyControl(c: SPIParamsBase) extends SPIBundle(c) {
@@ -43,30 +44,30 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   val io = new SPIBundle(c) {
     val port = new SPIPortIO(c)
     val ctrl = new SPIPhyControl(c).asInput
-    val op = Decoupled(new SPIMicroOp(c)).flip
-    val rx = Valid(Bits(width = c.frameBits))
+    val op = Flipped(Decoupled(new SPIMicroOp(c)))
+    val rx = Valid(Bits(c.frameBits.W))
   }
 
   private val op = io.op.bits
-  val ctrl = Reg(io.ctrl)
+  val ctrl = RegNext(io.ctrl)
   val proto = SPIProtocol.decode(ctrl.fmt.proto)
 
-  val accept = Wire(init = Bool(false))
-  val sample = Wire(init = Bool(false))
-  val setup = Wire(init = Bool(false))
-  val last = Wire(init = Bool(false))
+  val accept = WireDefault(false.B)
+  val sample = WireDefault(false.B)
+  val setup = WireDefault(false.B)
+  val last = WireDefault(false.B)
 
-  val setup_d = Reg(next = setup)
+  val setup_d = RegNext(setup)
 
-  val scnt = Reg(init = UInt(0, c.countBits))
-  val tcnt = Reg(io.ctrl.sck.div)
+  val scnt = RegInit(0.U(c.countBits.W))
+  val tcnt = RegNext(io.ctrl.sck.div)
 
-  val stop = (scnt === UInt(0))
-  val beat = (tcnt === UInt(0))
+  val stop = (scnt === 0.U)
+  val beat = (tcnt === 0.U)
 
   //Making a delay counter for 'sample'
   val totalCoarseDel = (io.ctrl.extradel.coarse + io.ctrl.sampledel.sd)
-  val sample_d = RegInit(Bool(false)) 
+  val sample_d = RegInit(false.B) 
   val del_cntr = RegInit(UInt(c.divisorBits.W), (c.defaultSampleDel).U)
 
   when (beat && sample) {
@@ -88,7 +89,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
     sample_d := false.B
   }
   //Making a delay counter for 'last'
-  val last_d = RegInit(Bool(false)) 
+  val last_d = RegInit(false.B) 
   val del_cntr_last = RegInit(UInt(c.divisorBits.W), (c.defaultSampleDel).U)
   when (beat && last) {
     when (totalCoarseDel > 1.U){
@@ -108,19 +109,19 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   }.otherwise {
     last_d := false.B
   }
-  val decr = Mux(beat, scnt, tcnt) - UInt(1)
-  val sched = Wire(init = beat)
+  val decr = Mux(beat, scnt, tcnt) - 1.U
+  val sched = WireDefault(beat)
   tcnt := Mux(sched, ctrl.sck.div, decr)
 
   val sck = Reg(Bool())
-  val cref = Reg(init = Bool(true))
+  val cref = RegInit(true.B)
   val cinv = ctrl.sck.pha ^ ctrl.sck.pol
 
   private def convert(data: UInt, fmt: SPIFormat) =
     Mux(fmt.endian === SPIEndian.MSB, data, Cat(data.asBools))
 
   val rxd = Cat(io.port.dq.reverse.map(_.i))
-  val rxd_delayed = Vec(Seq.fill(io.port.dq.size)(false.B))
+  val rxd_delayed = VecInit(Seq.fill(io.port.dq.size)(false.B))
 
   //Adding fine-granularity delay buffers on the received data
   if (c.fineDelayBits > 0){
@@ -137,7 +138,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   val rxd_fin = rxd_delayed.asUInt
   val samples = Seq(rxd_fin(1), rxd_fin(1, 0), rxd_fin)
 
-  val buffer = Reg(op.data)
+  val buffer = RegNext(op.data)
   val buffer_in = convert(io.op.bits.data, io.ctrl.fmt)
   val shift = Mux ((totalCoarseDel > 0.U), setup_d || (sample_d && stop), sample_d)
   buffer := Mux1H(proto, samples.zipWithIndex.map { case (data, i) =>
@@ -149,7 +150,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
 
   private def upper(x: UInt, n: Int) = x(c.frameBits-1, c.frameBits-n)
 
-  val txd = Reg(init = Bits(0, io.port.dq.size))
+  val txd = RegInit(0.U(io.port.dq.size.W))
   val txd_in = Mux(accept, upper(buffer_in, 4), upper(buffer, 4))
   val txd_sel = SPIProtocol.decode(Mux(accept, io.ctrl.fmt.proto, ctrl.fmt.proto))
   val txd_shf = (0 until txd_sel.size).map(i => txd_in(3, 4-(1<<i)))
@@ -158,21 +159,21 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   }
 
   val tx = (ctrl.fmt.iodir === SPIDirection.Tx)
-  val txen_in = (proto.head +: proto.tail.map(_ && tx)).scanRight(Bool(false))(_ || _).init
+  val txen_in = (proto.head +: proto.tail.map(_ && tx)).scanRight(false.B)(_ || _).init
   val txen = txen_in :+ txen_in.last
   val rdisableOE = Reg(Bool())
 
   io.port.sck := sck
-  io.port.cs := Vec.fill(io.port.cs.size)(Bool(true)) // dummy
+  io.port.cs := VecInit.fill(io.port.cs.size)(true.B) // dummy
   (io.port.dq zip (txd.asBools zip txen)).foreach {
     case (dq, (o, oe)) =>
       dq.o := o
       dq.oe := Mux(rdisableOE, false.B, oe)
       dq.ie := ~(dq.oe)
   }
-  io.op.ready := Bool(false)
+  io.op.ready := false.B
 
-  val done = Reg(init = Bool(true))
+  val done = RegInit(true.B)
   done := done || last_d
 
   io.rx.valid := done
@@ -181,8 +182,8 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   val xfr = Reg(Bool())
 
   when (stop) {
-    sched := Bool(true)
-    accept := Bool(true)
+    sched := true.B 
+    accept := true.B
   } .otherwise {
     when (beat) {
       cref := !cref
@@ -197,17 +198,17 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
     }
   }
 
-  when (scnt === UInt(1)) {
+  when (scnt === 1.U) {
     last := beat && cref && xfr // Final sample
     when (beat && !cref) { // Final shift
-      accept := Bool(true)
-      setup := Bool(false)
+      accept := true.B
+      setup := false.B
       sck := ctrl.sck.pol
     }
   }
 
   when (accept && done) {
-    io.op.ready := Bool(true)
+    io.op.ready := true.B 
     when (io.op.valid) {
       scnt := op.cnt
       rdisableOE := io.op.bits.disableOE.getOrElse(false.B)
@@ -215,14 +216,14 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
         ctrl.fmt := io.ctrl.fmt
       }
 
-      xfr := Bool(false)
+      xfr := false.B
       switch (op.fn) {
         is (SPIMicroOp.Transfer) {
           buffer := buffer_in
           sck := cinv
-          setup := Bool(true)
-          done := (op.cnt === UInt(0))
-          xfr := Bool(true)
+          setup := true.B 
+          done := (op.cnt === 0.U)
+          xfr := true.B
         }
         is (SPIMicroOp.Delay) {
           when (op.stb) {

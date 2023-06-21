@@ -1,6 +1,6 @@
 package sifive.blocks.devices.i2c
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import chisel3.{withClockAndReset}
 import freechips.rocketchip.util.SyncResetSynchronizerShiftReg
@@ -19,12 +19,12 @@ object I2CPinsFromPort {
     withClockAndReset(clock, reset) {
       pins.scl.outputPin(i2c.scl.out, pue=true.B, ie = true.B)
       pins.scl.o.oe := i2c.scl.oe
-      i2c.scl.in := SyncResetSynchronizerShiftReg(pins.scl.i.ival, syncStages, init = Bool(true),
+      i2c.scl.in := SyncResetSynchronizerShiftReg(pins.scl.i.ival, syncStages, init = true.B,
         name = Some("i2c_scl_sync"))
 
       pins.sda.outputPin(i2c.sda.out, pue=true.B, ie = true.B)
       pins.sda.o.oe := i2c.sda.oe
-      i2c.sda.in := SyncResetSynchronizerShiftReg(pins.sda.i.ival, syncStages, init = Bool(true),
+      i2c.sda.in := SyncResetSynchronizerShiftReg(pins.sda.i.ival, syncStages, init = true.B,
         name = Some("i2c_sda_sync"))
     }
   }

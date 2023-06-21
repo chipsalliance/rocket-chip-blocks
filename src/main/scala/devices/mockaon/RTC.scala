@@ -1,9 +1,7 @@
 package sifive.blocks.devices.mockaon
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
-import Chisel.ImplicitConversions._
-import chisel3.Module
 import freechips.rocketchip.util.AsyncResetReg
 import freechips.rocketchip.regmapper.RegFieldDesc
 
@@ -17,9 +15,9 @@ class RTC extends Module with GenericTimer {
   protected def ncmp = 1
   protected def countEn = countAlways
   override protected lazy val ip = RegNext(elapsed)
-  override protected lazy val zerocmp = Bool(false)
+  override protected lazy val zerocmp = false.B
   protected lazy val countAlways = AsyncResetReg(io.regs.cfg.write.countAlways, io.regs.cfg.write_countAlways && unlocked)(0)
-  protected lazy val feed = Bool(false)
+  protected lazy val feed = false.B
 
   override protected lazy val feed_desc = RegFieldDesc.reserved
   override protected lazy val key_desc = RegFieldDesc.reserved

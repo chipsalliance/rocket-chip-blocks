@@ -1,7 +1,7 @@
 
 package sifive.blocks.devices.pinctrl
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 // This is the base class of things you "always"
@@ -16,18 +16,18 @@ class PinCtrl extends Bundle {
 // for the Pin
 abstract class Pin extends Bundle {
   val i = new Bundle {
-    val ival = Bool(INPUT)
-    val po   = Option(Bool(INPUT))
+    val ival = Input(Bool())
+    val po   = Option(Input(Bool()))
   }
   val o: PinCtrl
 
   // Must be defined by the subclasses
   def default(): Unit
-  def inputPin(pue: Bool = Bool(false)): Bool
+  def inputPin(pue: Bool = false.B): Bool
   def outputPin(signal: Bool,
-    pue: Bool = Bool(false),
-    ds: Bool = Bool(false),
-    ie: Bool = Bool(false)
+    pue: Bool = false.B,
+    ds: Bool = false.B,
+    ie: Bool = false.B
   ): Unit
   
 }
@@ -39,25 +39,25 @@ class BasePin extends Pin() {
   val o = new PinCtrl().asOutput
 
   def default(): Unit = {
-    this.o.oval := Bool(false)
-    this.o.oe   := Bool(false)
-    this.o.ie   := Bool(false)
+    this.o.oval := false.B
+    this.o.oe   := false.B
+    this.o.ie   := false.B
   }
 
-  def inputPin(pue: Bool = Bool(false) /*ignored*/): Bool = {
-    this.o.oval := Bool(false)
-    this.o.oe   := Bool(false)
-    this.o.ie   := Bool(true)
+  def inputPin(pue: Bool = false.B /*ignored*/): Bool = {
+    this.o.oval := false.B
+    this.o.oe   := false.B
+    this.o.ie   := true.B
     this.i.ival
   }
 
   def outputPin(signal: Bool,
-    pue: Bool = Bool(false), /*ignored*/
-    ds: Bool = Bool(false), /*ignored*/
-    ie: Bool = Bool(false)
+    pue: Bool = false.B, /*ignored*/
+    ds: Bool = false.B, /*ignored*/
+    ie: Bool = false.B
   ): Unit = {
     this.o.oval := signal
-    this.o.oe   := Bool(true)
+    this.o.oe   := true.B
     this.o.ie   := ie
   }
 }
@@ -77,37 +77,37 @@ class EnhancedPin  extends Pin() {
   val o = new EnhancedPinCtrl().asOutput
 
   def default(): Unit = {
-    this.o.oval := Bool(false)
-    this.o.oe   := Bool(false)
-    this.o.ie   := Bool(false)
-    this.o.ds   := Bool(false)
-    this.o.pue  := Bool(false)
-    this.o.ds1  := Bool(false)
-    this.o.ps   := Bool(false)
-    this.o.poe  := Bool(false)
+    this.o.oval := false.B
+    this.o.oe   := false.B
+    this.o.ie   := false.B
+    this.o.ds   := false.B
+    this.o.pue  := false.B
+    this.o.ds1  := false.B
+    this.o.ps   := false.B
+    this.o.poe  := false.B
 
   }
 
-  def inputPin(pue: Bool = Bool(false)): Bool = {
-    this.o.oval := Bool(false)
-    this.o.oe   := Bool(false)
+  def inputPin(pue: Bool = false.B): Bool = {
+    this.o.oval := false.B
+    this.o.oe   := false.B
     this.o.pue  := pue
-    this.o.ds   := Bool(false)
-    this.o.ie   := Bool(true)
-    this.o.ds1  := Bool(false)
-    this.o.ps   := Bool(false)
-    this.o.poe  := Bool(false)
+    this.o.ds   := false.B
+    this.o.ie   := true.B
+    this.o.ds1  := false.B
+    this.o.ps   := false.B
+    this.o.poe  := false.B
 
     this.i.ival
   }
 
   def outputPin(signal: Bool,
-    pue: Bool = Bool(false),
-    ds: Bool = Bool(false),
-    ie: Bool = Bool(false)
+    pue: Bool = false.B,
+    ds: Bool = false.B,
+    ie: Bool = false.B
   ): Unit = {
     this.o.oval := signal
-    this.o.oe   := Bool(true)
+    this.o.oe   := true.B
     this.o.pue  := pue
     this.o.ds   := ds
     this.o.ie   := ie
@@ -120,7 +120,7 @@ class EnhancedPin  extends Pin() {
     base_pin
   }
 
-  def nandInput(poe: Bool = Bool(true)) : Bool = {
+  def nandInput(poe: Bool = true.B) : Bool = {
     this.i.po.get
   }
 }

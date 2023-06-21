@@ -1,20 +1,21 @@
 package sifive.blocks.devices.spi
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
+import chisel3.util.{log2Ceil, Mux1H}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 class SPIInnerIO(c: SPIParamsBase) extends SPILinkIO(c) {
-  val lock = Bool(OUTPUT)
+  val lock = Output(Bool())
 }
 
 class SPIArbiter(c: SPIParamsBase, n: Int) extends Module {
   val io = new Bundle {
-    val inner = Vec(n, new SPIInnerIO(c)).flip
+    val inner = Flipped(Vec(n, new SPIInnerIO(c)))
     val outer = new SPILinkIO(c)
-    val sel = UInt(INPUT, log2Up(n))
+    val sel = Input(UInt(log2Up(n).W))
   }
 
-  val sel = Reg(init = Vec(Bool(true) +: Seq.fill(n-1)(Bool(false))))
+  val sel = RegInit(VecInit(true.B +: Seq.fill(n-1)(false.B)))
 
   io.outer.tx.valid := Mux1H(sel, io.inner.map(_.tx.valid))
   io.outer.tx.bits := Mux1H(sel, io.inner.map(_.tx.bits))
@@ -32,12 +33,12 @@ class SPIArbiter(c: SPIParamsBase, n: Int) extends Module {
     inner.active := io.outer.active && s
   }
 
-  val nsel = Vec.tabulate(n)(io.sel === UInt(_))
+  val nsel = VecInit.tabulate(n)(io.sel === _.U)
   val lock = Mux1H(sel, io.inner.map(_.lock))
   when (!lock) {
     sel := nsel
     when (sel.asUInt =/= nsel.asUInt) {
-      io.outer.cs.clear := Bool(true)
+      io.outer.cs.clear := true.B
     }
   }
 }

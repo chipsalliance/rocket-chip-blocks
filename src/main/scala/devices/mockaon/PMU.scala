@@ -1,8 +1,8 @@
 package sifive.blocks.devices.mockaon
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._
+import chisel3.util.{Valid, log2Ceil, OHToUInt}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
-import Chisel.ImplicitConversions._
 import freechips.rocketchip.util._
 import sifive.blocks.util.SRLatch
 
@@ -61,28 +61,28 @@ class PMUCore(c: PMUConfig)(resetIn: Bool) extends Module(_reset = resetIn) {
   val io = new Bundle {
     val wakeup = new WakeupCauses().asInput
     val control = Valid(new PMUSignals)
-    val resetCause = UInt(INPUT, log2Ceil(new ResetCauses().getWidth))
+    val resetCause = Input(UInt(log2Ceil(new ResetCauses().getWidth).W))
     val regs = new PMURegs(c)
   }
 
-  val run = Reg(init = Bool(true))
-  val awake = Reg(init = Bool(true))
+  val run = RegInit(true.B)
+  val awake = RegInit(true.B)
   val unlocked = {
     val writeAny = WatchdogTimer.writeAnyExceptKey(io.regs, io.regs.key)
-    RegEnable(io.regs.key.write.bits === WatchdogTimer.key && !writeAny, Bool(false), io.regs.key.write.valid || writeAny)
+    RegEnable(io.regs.key.write.bits === WatchdogTimer.key && !writeAny, false.B, io.regs.key.write.valid || writeAny)
   }
-  val wantSleep = RegEnable(Bool(true), Bool(false), io.regs.sleep.write.valid && unlocked)
-  val pc = Reg(init = UInt(0, log2Ceil(c.programLength)))
-  val wakeupCause = Reg(init = UInt(0, log2Ceil(c.nWakeupCauses)))
+  val wantSleep = RegEnable(true.B, false.B, io.regs.sleep.write.valid && unlocked)
+  val pc = RegInit(0.U(log2Ceil(c.programLength).W))
+  val wakeupCause = RegInit(0.U(log2Ceil(c.nWakeupCauses).W))
   val ie = RegEnable(io.regs.ie.write.bits, io.regs.ie.write.valid && unlocked) | 1 /* POR always enabled */
 
   val insnWidth = new PMUInstruction().getWidth
-  val wakeupProgram = c.wakeupProgram.map(v => Reg(init = UInt(v, insnWidth)))
-  val sleepProgram = c.sleepProgram.map(v => Reg(init = UInt(v, insnWidth)))
+  val wakeupProgram = c.wakeupProgram.map(v => RegInit(v.U(insnWidth.W)))
+  val sleepProgram = c.sleepProgram.map(v => RegInit(v.U(insnWidth.W)))
   val insnBits = Mux(awake, wakeupProgram(pc), sleepProgram(pc))
-  val insn = new PMUInstruction().fromBits(insnBits)
+  val insn = insnBits.asTypeOf(new PMUInstruction())
 
-  val count = Reg(init = UInt(0, 1 << insn.dt.getWidth))
+  val count = RegInit(0.U((1 << insn.dt.getWidth).W))
   val tick = (count ^ (count + 1))(insn.dt)
   val npc = pc +& 1
   val last = npc >= c.programLength
@@ -131,7 +131,7 @@ class PMU(val c: PMUConfig) extends Module {
     val resetCauses = new ResetCauses().asInput
   }
 
-  val coreReset = Reg(next = Reg(next = reset))
+  val coreReset = RegNext(RegNext(reset))
   val core = Module(new PMUCore(c)(resetIn = coreReset))
 
   io <> core.io
@@ -139,7 +139,7 @@ class PMU(val c: PMUConfig) extends Module {
 
   // during aonrst, hold all control signals high
   val latch = ~AsyncResetReg(~core.io.control.bits.asUInt, core.io.control.valid)
-  io.control := io.control.fromBits(latch)
+  io.control := latch.asTypeOf(io.control)
 
   core.io.resetCause := {
     val cause = io.resetCauses.asUInt

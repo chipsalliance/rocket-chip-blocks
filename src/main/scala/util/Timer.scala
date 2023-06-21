@@ -1,8 +1,7 @@
 package sifive.blocks.util
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
-import Chisel.ImplicitConversions._
 import freechips.rocketchip.regmapper._
 import freechips.rocketchip.util.WideCounter
 
@@ -16,15 +15,15 @@ class GenericTimerCfgReg(
   val gang = Vec(maxcmp, Bool())
   val extra = Vec(maxcmp, Bool())
   val center = Vec(maxcmp, Bool())
-  val reserved0 = UInt(width = 2)
+  val reserved0 = UInt(2.W)
   val running = Bool()
   val countAlways = Bool()
-  val reserved1 = UInt(width = 1)
+  val reserved1 = UInt(1.W)
   val deglitch = Bool()
   val zerocmp = Bool()
   val sticky = Bool()
-  val reserved2 = UInt(width = 8 - scaleWidth)
-  val scale = UInt(width = scaleWidth)
+  val reserved2 = UInt((8 - scaleWidth).W)
+  val scale = UInt(scaleWidth.W)
 
 }
 
@@ -66,30 +65,30 @@ class GenericTimerCfgRegIFC (
   val write = new GenericTimerCfgReg(maxcmp, scaleWidth).asInput
   val read =  new GenericTimerCfgReg(maxcmp, scaleWidth).asOutput
 
-  val write_ip = Vec(maxcmp, Bool(INPUT))
-  val write_gang = Vec(maxcmp, Bool(INPUT))
-  val write_extra = Vec(maxcmp, Bool(INPUT))
-  val write_center = Vec(maxcmp, Bool(INPUT))
-  val write_running = Bool(INPUT)
-  val write_countAlways = Bool(INPUT)
-  val write_deglitch = Bool(INPUT)
-  val write_zerocmp = Bool(INPUT)
-  val write_sticky = Bool(INPUT)
-  val write_scale = Bool(INPUT)
+  val write_ip = Vec(maxcmp, Input(Bool()))
+  val write_gang = Vec(maxcmp, Input(Bool()))
+  val write_extra = Vec(maxcmp, Input(Bool()))
+  val write_center = Vec(maxcmp, Input(Bool()))
+  val write_running = Input(Bool())
+  val write_countAlways = Input(Bool())
+  val write_deglitch = Input(Bool())
+  val write_zerocmp = Input(Bool())
+  val write_sticky = Input(Bool())
+  val write_scale = Input(Bool())
 
   def toRegFields(prefix: String, descs: GenericTimerCfgDescs): Seq[RegField] = {
 
     def writeFn(valid: Bool, data: UInt, wr_data: UInt, wr_notify: Bool): Bool = {
       wr_notify := valid
       wr_data   := data
-      Bool(true)
+      true.B
     }
 
     // Defaults, because only ncmp of these are assigned by the regmap below.
-    write_ip     := Vec.fill(maxcmp){false.B}
-    write_gang   := Vec.fill(maxcmp){false.B}
-    write_extra  := Vec.fill(maxcmp){false.B}
-    write_center := Vec.fill(maxcmp){false.B}
+    write_ip     := VecInit.fill(maxcmp){false.B}
+    write_gang   := VecInit.fill(maxcmp){false.B}
+    write_extra  := VecInit.fill(maxcmp){false.B}
+    write_center := VecInit.fill(maxcmp){false.B}
 
     RegFieldGroup(s"${prefix}cfg", Some(s"${prefix} Configuration"),
       Seq(
@@ -169,15 +168,15 @@ trait GenericTimer {
   protected def countEn: Bool
   protected def feed: Bool
   protected def ip: Vec[Bool]
-  protected def countAwake: Bool = Bool(false)
-  protected def unlocked: Bool = Bool(true)
-  protected def rsten: Bool = Bool(false)
-  protected def deglitch: Bool = Bool(false)
-  protected def sticky: Bool = Bool(false)
-  protected def oneShot: Bool = Bool(false)
-  protected def center: Vec[Bool] = Vec.fill(ncmp){Bool(false)}
-  protected def extra: Vec[Bool] = Vec.fill(ncmp){Bool(false)}
-  protected def gang: Vec[Bool] = Vec.fill(ncmp){Bool(false)}
+  protected def countAwake: Bool = false.B 
+  protected def unlocked: Bool = true.B
+  protected def rsten: Bool = false.B
+  protected def deglitch: Bool = false.B
+  protected def sticky: Bool = false.B
+  protected def oneShot: Bool = false.B
+  protected def center: Vec[Bool] = VecInit.fill(ncmp){false.B}
+  protected def extra: Vec[Bool] = VecInit.fill(ncmp){false.B}
+  protected def gang: Vec[Bool] = VecInit.fill(ncmp){false.B}
   protected val scaleWidth = 4
   protected val regWidth = 32
   val maxcmp = 4
@@ -207,13 +206,13 @@ trait GenericTimer {
   // generate periodic interrupt
   protected val s = (count >> scale)(cmpWidth-1, 0)
   // reset counter when fed or elapsed
-  protected val elapsed = Vec.tabulate(ncmp){i => Mux(s(cmpWidth-1) && center(i), ~s, s) >= cmp(i)}
+  protected val elapsed = VecInit.tabulate(ncmp){i => Mux(s(cmpWidth-1) && center(i), ~s, s) >= cmp(i)}
   protected val countReset = feed || (zerocmp && elapsed(0))
   when (countReset) { count := 0 }
   when (io.regs.countLo.write.valid && unlocked) { count := Cat(count >> regWidth, io.regs.countLo.write.bits) }
   if (countWidth > regWidth) when (io.regs.countHi.write.valid && unlocked) { count := Cat(io.regs.countHi.write.bits, count(regWidth-1, 0)) }
 
-  io.regs.cfg.read := new GenericTimerCfgReg(maxcmp, scaleWidth).fromBits(0.U)
+  io.regs.cfg.read := 0.U.asTypeOf(new GenericTimerCfgReg(maxcmp, scaleWidth))
   io.regs.cfg.read.ip := ip
   io.regs.cfg.read.gang := gang
   io.regs.cfg.read.extra := extra

@@ -1,6 +1,6 @@
 package sifive.blocks.devices.jtag
 
-import Chisel._
+import chisel3._ 
 
 // ------------------------------------------------------------
 // SPI, UART, etc are with their respective packages,

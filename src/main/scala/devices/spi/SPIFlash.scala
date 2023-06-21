@@ -1,6 +1,7 @@
 package sifive.blocks.devices.spi
 
-import Chisel.{defaultCompileOptions => _, _}
+import chisel3._ 
+import chisel3.util.{Decoupled, Mux1H, Enum}
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 
@@ -8,15 +9,15 @@ import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 class SPIFlashInsn(c: SPIFlashParamsBase) extends SPIBundle(c) {
   val cmd = new Bundle with HasSPIProtocol {
-    val code = Bits(width = c.insnCmdBits)
+    val code = Bits(c.insnCmdBits.W)
     val en = Bool()
   }
   val addr = new Bundle with HasSPIProtocol {
-    val len = UInt(width = c.insnAddrLenBits)
+    val len = UInt(c.insnAddrLenBits.W)
   }
   val pad = new Bundle {
-    val code = Bits(width = c.frameBits)
-    val cnt = Bits(width = c.insnPadLenBits)
+    val code = Bits(c.frameBits.W)
+    val cnt = Bits(c.insnPadLenBits.W)
   }
   val data = new Bundle with HasSPIProtocol
 }
@@ -29,13 +30,13 @@ class SPIFlashControl(c: SPIFlashParamsBase) extends SPIBundle(c) {
 object SPIFlashInsn {
   def init(c: SPIFlashParamsBase): SPIFlashInsn = {
     val insn = Wire(new SPIFlashInsn(c))
-    insn.cmd.en := Bool(true)
-    insn.cmd.code := Bits(0x03)
+    insn.cmd.en := true.B
+    insn.cmd.code := 0x03.U
     insn.cmd.proto := SPIProtocol.Single
-    insn.addr.len := UInt(3)
+    insn.addr.len := 3.U
     insn.addr.proto := SPIProtocol.Single
-    insn.pad.cnt := UInt(0)
-    insn.pad.code := Bits(0)
+    insn.pad.cnt := 0.U
+    insn.pad.code := 0.U
     insn.data.proto := SPIProtocol.Single
     insn
   }
@@ -48,69 +49,69 @@ class SPIFlashAddr(c: SPIFlashParamsBase) extends SPIBundle(c) {
 
 class SPIFlashMap(c: SPIFlashParamsBase) extends Module {
   val io = new Bundle {
-    val en = Bool(INPUT)
+    val en = Input(Bool())
     val ctrl = new SPIFlashControl(c).asInput
     val addr = Decoupled(new SPIFlashAddr(c)).flip
-    val data = Decoupled(UInt(width = c.frameBits))
+    val data = Decoupled(UInt(c.frameBits.W))
     val link = new SPIInnerIO(c)
   }
 
-  val addr = io.addr.bits.hold + UInt(1)
+  val addr = io.addr.bits.hold + 1.U
   val merge = io.link.active && (io.addr.bits.next === addr)
 
   private val insn = io.ctrl.insn
-  io.link.tx.valid := Bool(true)
+  io.link.tx.valid := true.B
   io.link.fmt.proto := insn.addr.proto
   io.link.fmt.iodir := SPIDirection.Tx
   io.link.fmt.endian := io.ctrl.fmt.endian
   io.link.cnt := Mux1H(
     SPIProtocol.decode(io.link.fmt.proto).zipWithIndex.map {
-      case (s, i) => (s -> UInt(c.frameBits >> i))
+      case (s, i) => (s -> (c.frameBits >> i).U)
     })
-  io.link.cs.set := Bool(true)
-  io.link.cs.clear := Bool(false)
-  io.link.cs.hold := Bool(true)
-  io.link.lock := Bool(true)
+  io.link.cs.set := true.B
+  io.link.cs.clear := false.B
+  io.link.cs.hold := true.B
+  io.link.lock := true.B
   io.link.disableOE.foreach ( _ := false.B)
 
-  io.addr.ready := Bool(false)
-  io.data.valid := Bool(false)
+  io.addr.ready := false.B
+  io.data.valid := false.B
   io.data.bits := io.link.rx.bits
 
-  val cnt = Reg(UInt(width = math.max(c.insnPadLenBits, c.insnAddrLenBits)))
-  val cnt_en = Wire(init = Bool(false))
-  val cnt_cmp = (0 to c.insnAddrBytes).map(cnt === UInt(_))
+  val cnt = Reg(UInt(math.max(c.insnPadLenBits, c.insnAddrLenBits).W))
+  val cnt_en = WireDefault(false.B)
+  val cnt_cmp = (0 to c.insnAddrBytes).map(cnt === _.U)
   val cnt_zero = cnt_cmp(0)
   val cnt_last = cnt_cmp(1) && io.link.tx.ready
   val cnt_done = cnt_last || cnt_zero
   when (cnt_en) {
     io.link.tx.valid := !cnt_zero
     when (io.link.tx.fire) {
-      cnt := cnt - UInt(1)
+      cnt := cnt - 1.U
     }
   }
 
-  val (s_idle :: s_cmd :: s_addr :: s_pad :: s_data_pre :: s_data_post :: s_off :: Nil) = Enum(UInt(), 7)
-  val state = Reg(init = s_idle)
+  val (s_idle :: s_cmd :: s_addr :: s_pad :: s_data_pre :: s_data_post :: s_off :: Nil) = Enum(7)
+  val state = RegInit(s_idle)
 
   switch (state) {
     is (s_idle) {
-      io.link.tx.valid := Bool(false)
+      io.link.tx.valid := false.B
       when (io.en) {
-        io.addr.ready := Bool(true)
+        io.addr.ready := true.B
         when (io.addr.valid) {
           when (merge) {
             state := s_data_pre
           } .otherwise {
             state := Mux(insn.cmd.en, s_cmd, s_addr)
-            io.link.cs.clear := Bool(true)
+            io.link.cs.clear := true.B
           }
         } .otherwise {
-          io.link.lock := Bool(false)
+          io.link.lock := false.B
         }
       } .otherwise {
-        io.addr.ready := Bool(true)
-        io.link.lock := Bool(false)
+        io.addr.ready := true.B
+        io.link.lock := false.B
         when (io.addr.valid) {
           state := s_off
         }
@@ -134,7 +135,7 @@ class SPIFlashMap(c: SPIFlashParamsBase) extends Module {
           s -> io.addr.bits.hold(m, n)
       })
 
-      cnt_en := Bool(true)
+      cnt_en := true.B
       when (cnt_done) {
         state := s_pad
       }
@@ -158,7 +159,7 @@ class SPIFlashMap(c: SPIFlashParamsBase) extends Module {
     }
 
     is (s_data_post) {
-      io.link.tx.valid := Bool(false)
+      io.link.tx.valid := false.B
       io.data.valid := io.link.rx.valid
       when (io.data.fire) {
         state := s_idle
@@ -166,8 +167,8 @@ class SPIFlashMap(c: SPIFlashParamsBase) extends Module {
     }
 
     is (s_off) {
-      io.data.valid := Bool(true)
-      io.data.bits := UInt(0)
+      io.data.valid := true.B
+      io.data.bits := 0.U
       when (io.data.ready) {
         state := s_idle
       }
