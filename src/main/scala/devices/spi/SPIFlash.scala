@@ -1,7 +1,7 @@
 package sifive.blocks.devices.spi
 
 import chisel3._ 
-import chisel3.util.{Decoupled, Mux1H, Enum}
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 
@@ -43,15 +43,15 @@ object SPIFlashInsn {
 }
 
 class SPIFlashAddr(c: SPIFlashParamsBase) extends SPIBundle(c) {
-  val next = UInt(width = c.insnAddrBits)
-  val hold = UInt(width = c.insnAddrBits)
+  val next = UInt(c.insnAddrBits.W)
+  val hold = UInt(c.insnAddrBits.W)
 }
 
 class SPIFlashMap(c: SPIFlashParamsBase) extends Module {
   val io = new Bundle {
     val en = Input(Bool())
-    val ctrl = new SPIFlashControl(c).asInput
-    val addr = Decoupled(new SPIFlashAddr(c)).flip
+    val ctrl = Input(new SPIFlashControl(c))
+    val addr = Flipped(Decoupled(new SPIFlashAddr(c)))
     val data = Decoupled(UInt(c.frameBits.W))
     val link = new SPIInnerIO(c)
   }

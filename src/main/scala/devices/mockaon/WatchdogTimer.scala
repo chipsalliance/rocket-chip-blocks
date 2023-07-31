@@ -1,6 +1,7 @@
 package sifive.blocks.devices.mockaon
 
-import chisel3._ 
+import chisel3._
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.util.AsyncResetReg
 import freechips.rocketchip.regmapper.{RegFieldDesc}
@@ -30,15 +31,15 @@ class WatchdogTimer extends Module with GenericTimer {
     val corerstSynchronized = RegNext(RegNext(io.corerst))
     countAlways || (countAwake && !corerstSynchronized)
   }
-  override protected lazy val rsten = AsyncResetReg(io.regs.cfg.write.sticky, io.regs.cfg.write_sticky && unlocked)(0)
+  override protected lazy val rsten = AsyncResetReg(io.regs.cfg.write.sticky, io.regs.cfg.write_sticky && unlocked)(0.U)
   protected lazy val ip = RegEnable(VecInit(Seq(io.regs.cfg.write.ip(0) || elapsed(0))), (io.regs.cfg.write_ip(0) && unlocked) || elapsed(0))
   override protected lazy val unlocked = {
     val writeAny = WatchdogTimer.writeAnyExceptKey(io.regs, io.regs.key)
-    AsyncResetReg(io.regs.key.write.bits === WatchdogTimer.key && !writeAny, io.regs.key.write.valid || writeAny)(0)
+    AsyncResetReg(io.regs.key.write.bits === WatchdogTimer.key.U && !writeAny, io.regs.key.write.valid || writeAny)(0)
   }
   protected lazy val feed = {
     val food = 0xD09F00D
-    unlocked && io.regs.feed.write.valid && io.regs.feed.write.bits === food
+    unlocked && io.regs.feed.write.valid && io.regs.feed.write.bits === food.U
   }
 
   // The Scala Type-Chekcher seems to have a bug and I get a null pointer during the Scala compilation

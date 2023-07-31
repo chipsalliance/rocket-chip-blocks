@@ -72,18 +72,18 @@ abstract class GPIO(busWidthBytes: Int, c: GPIOParams)(implicit p: Parameters)
   // -------------------------------------------------
 
   // SW Control only.
-  val portReg = RegInit(0.U(c.width))
+  val portReg = RegInit(0.U(c.width.W))
 
   val oeReg  = Module(new AsyncResetRegVec(c.width, 0))
   val pueReg = Module(new AsyncResetRegVec(c.width, 0))
-  val dsReg  = RegInit(VecInit(Seq.fill(c.dsWidth)(0.U(c.width))))
+  val dsReg  = RegInit(VecInit(Seq.fill(c.dsWidth)(0.U(c.width.W))))
   val ieReg  = Module(new AsyncResetRegVec(c.width, 0))
-  val psReg  = RegInit(0.U(c.width))
+  val psReg  = RegInit(0.U(c.width.W))
   val poeReg = Module(new AsyncResetRegVec(c.width, 0))
 
   // Synchronize Input to get valueReg
   val inVal = WireDefault(0.U(c.width.W))
-  inVal := Vec(port.pins.map(_.i.ival)).asUInt
+  inVal := port.pins.map(_.i.ival).asUInt
   val inSyncReg  = SynchronizerShiftReg(inVal, 3, Some("inSyncReg"))
   val valueReg   = RegNext(inSyncReg, 0.U(c.width.W))
 

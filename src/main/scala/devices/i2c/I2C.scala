@@ -42,7 +42,7 @@
 package sifive.blocks.devices.i2c
 
 import chisel3._
-import chisel3.util.Enum
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
@@ -534,7 +534,7 @@ abstract class I2C(busWidthBytes: Int, params: I2CParams)(implicit p: Parameters
   status.irqFlag            := (cmdAck || arbLost || status.irqFlag) && !cmd.irqAck // interrupt request flag is always generated
 
 
-  val statusReadReady = Reg(init = true.B)
+  val statusReadReady = RegInit(true.B)
   when (cmdAck || arbLost) {    // => cmd.read or cmd.write deassert 1 cycle later => transferInProgress deassert 2 cycles later
     statusReadReady := false.B  // do not allow status read if status.transferInProgress is going to change
   }

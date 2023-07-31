@@ -46,7 +46,7 @@ trait HasMockAONBundleContents extends Bundle {
 
   val lfextclk = Input(Clock())
 
-  val resetCauses = new ResetCauses().asInput
+  val resetCauses = Input(new ResetCauses())
 }
 
 trait HasMockAONModuleContents extends Module with HasRegMap {

@@ -1,7 +1,7 @@
 package sifive.blocks.devices.chiplink
 
 import chisel3._ 
-import chisel3.util.{UIntToOH, Decoupled}
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.tilelink._
 import freechips.rocketchip.util._

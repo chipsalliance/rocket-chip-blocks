@@ -2,6 +2,7 @@
 package sifive.blocks.devices.pinctrl
 
 import chisel3._
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 // This is the base class of things you "always"
@@ -36,7 +37,7 @@ abstract class Pin extends Bundle {
 ////////////////////////////////////////////////////////////////////////////////////
 
 class BasePin extends Pin() {
-  val o = new PinCtrl().asOutput
+  val o = Output(new PinCtrl())
 
   def default(): Unit = {
     this.o.oval := false.B
@@ -74,7 +75,7 @@ class EnhancedPinCtrl extends PinCtrl {
 
 class EnhancedPin  extends Pin() {
 
-  val o = new EnhancedPinCtrl().asOutput
+  val o = Output(new EnhancedPinCtrl())
 
   def default(): Unit = {
     this.o.oval := false.B

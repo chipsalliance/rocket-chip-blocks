@@ -12,11 +12,11 @@ class SPIFIFOControl(c: SPIParamsBase) extends SPIBundle(c) {
 
 class SPIFIFO(c: SPIParamsBase) extends Module {
   val io = new Bundle {
-    val ctrl = new SPIFIFOControl(c).asInput
+    val ctrl = Input(new SPIFIFOControl(c))
     val link = new SPIInnerIO(c)
     val tx = Flipped(Decoupled(Bits(c.frameBits.W)))
     val rx = Decoupled(Bits(c.frameBits.W))
-    val ip = new SPIInterrupts().asOutput
+    val ip = Output(new SPIInterrupts())
   }
 
   val txq = Module(new Queue(io.tx.bits, c.txDepth))

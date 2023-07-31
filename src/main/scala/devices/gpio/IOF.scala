@@ -1,6 +1,7 @@
 package sifive.blocks.devices.gpio
 
 import chisel3._
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import sifive.blocks.devices.pinctrl.{PinCtrl, Pin, BasePin, EnhancedPin, EnhancedPinCtrl}
 
@@ -27,7 +28,7 @@ object IOFCtrl {
 // Package up the inputs and outputs
 // for the IOF
 class IOFPin extends Pin {
-  val o  = new IOFCtrl().asOutput
+  val o  = Output(IOFCtrl())
 
   def default(): Unit = {
     this.o.oval  := false.B

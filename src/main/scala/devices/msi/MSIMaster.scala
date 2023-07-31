@@ -2,7 +2,7 @@
 package sifive.blocks.devices.msi
 
 import chisel3._
-import chisel3.util.{Mux1H}
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.diplomacy._
@@ -37,7 +37,7 @@ class MSIMaster(targets: Seq[MSITarget])(implicit p: Parameters) extends LazyMod
       val m = masterEdge.manager.find(addr)
       require (m.isDefined, s"MSIMaster ${name} was pointed at address 0x${addr}%x which does not exist")
       require (m.get.supportsPutFull.contains(1), s"MSIMaster ${name} requires device ${m.get.name} supportPutFull of 1 byte (${m.get.supportsPutFull})")
-      UInt(addr)
+      addr.U
     }.take(interrupts.size max 1)
 
     require (interrupts.size <= targetMap.size, s"MSIMaster ${name} has more interrupts (${interrupts.size}) than addresses to use (${targetMap.size})")

@@ -1,7 +1,7 @@
 package sifive.blocks.devices.spi
 
 import chisel3._ 
-import chisel3.util.{Decoupled, Valid}
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.util._
 
@@ -10,7 +10,7 @@ class SPILinkIO(c: SPIParamsBase) extends SPIBundle(c) {
   val rx = Flipped(Valid(Bits(c.frameBits.W)))
 
   val cnt = Output(UInt(c.countBits.W))
-  val fmt = new SPIFormat(c).asOutput
+  val fmt = Output(new SPIFormat(c))
   val cs = new Bundle {
     val set = Output(Bool())
     val clear = Output(Bool()) // Deactivate CS
@@ -24,11 +24,11 @@ class SPIMedia(c: SPIParamsBase) extends Module {
   val io = new Bundle {
     val port = new SPIPortIO(c)
     val ctrl = new Bundle {
-      val sck = new SPIClocking(c).asInput
-      val dla = new SPIDelay(c).asInput
-      val cs = new SPIChipSelect(c).asInput
-      val extradel = new SPIExtraDelay(c).asInput
-      val sampledel = new SPISampleDelay(c).asInput
+      val sck = Input(new SPIClocking(c))
+      val dla = Input(new SPIDelay(c))
+      val cs = Input(new SPIChipSelect(c))
+      val extradel = Input(new SPIExtraDelay(c))
+      val sampledel = Input(new SPISampleDelay(c))
     }
     val link = Flipped(new SPILinkIO(c))
   }

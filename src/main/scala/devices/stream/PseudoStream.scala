@@ -1,7 +1,7 @@
 package sifive.blocks.devices.stream
 
 import chisel3._ 
-import chisel3.util.{Decoupled, log2Up, Queue}
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 import org.chipsalliance.cde.config.{Field, Parameters}
@@ -77,7 +77,7 @@ abstract class PseudoStream(busWidthBytes: Int, val params: PseudoStreamParams)(
     )
 
     (nbports zip bports).zipWithIndex.map { case ((nb, b), idx) =>
-      val txq_arb = Module(new Arbiter(UInt(width = params.dataBits), 2))
+      val txq_arb = Module(new Arbiter(UInt(params.dataBits.W), 2))
     txq_arb.io.in(0) <> nb.txq
     txq_arb.io.in(1) <> b.txq
     port.channel(idx).txq <> txq_arb.io.out

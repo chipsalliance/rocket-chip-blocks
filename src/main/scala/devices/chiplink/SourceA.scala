@@ -1,7 +1,7 @@
 package sifive.blocks.devices.chiplink
 
 import chisel3._ 
-import chisel3.util.{Decoupled, UIntToOH, Valid}
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.tilelink._
 import freechips.rocketchip.util._
@@ -10,9 +10,9 @@ class SourceA(info: ChipLinkInfo) extends Module
 {
   val io = new Bundle {
     val a = Decoupled(new TLBundleA(info.edgeOut.bundle))
-    val q = Flipped(Decoupled(UInt(width = info.params.dataBits)))
+    val q = Flipped(Decoupled(UInt(width = info.params.dataBits.W)))
     // Used by D to find the txn
-    val d_tlSource = Flipped(Valid(UInt(width = info.params.sourceBits)))
+    val d_tlSource = Flipped(Valid(UInt(width = info.params.sourceBits.W)))
     val d_clSource = Output(UInt(info.params.clSourceBits.W))
   }
 
@@ -61,7 +61,7 @@ class SourceA(info: ChipLinkInfo) extends Module
   val exists = info.edgeOut.manager.containsSafe(q_address)
   private def writeable(m: TLManagerParameters): Boolean = if (m.supportsAcquireB) m.supportsAcquireT else m.supportsPutFull
   private def acquireable(m: TLManagerParameters): Boolean = m.supportsAcquireB || m.supportsAcquireT
-  private def toBool(x: Boolean) = Bool(x)
+  private def toBool(x: Boolean) = x.asBool
   val writeOk = info.edgeOut.manager.fastProperty(q_address, writeable, toBool)
   val acquireOk = info.edgeOut.manager.fastProperty(q_address, acquireable, toBool)
   val q_legal = exists && (!q_write || writeOk) && (!q_acq || acquireOk)

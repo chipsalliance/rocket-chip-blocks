@@ -1,7 +1,7 @@
 package sifive.blocks.devices.chiplink
 
 import chisel3._ 
-import chisel3.util.{DecoupledIO, log2Ceil, Mux1H}
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.tilelink._
 import freechips.rocketchip.util._
@@ -105,7 +105,7 @@ class TX(info: ChipLinkInfo) extends Module
 
   // Form the output beat
   io.c2b_clk  := clock
-  io.c2b_rst  := AsyncResetReg(false.B, clock, reset, true, None)
+  io.c2b_rst  := AsyncResetReg(false.B, clock, reset.asBool, true, None)
   io.c2b_send := RegNext(RegNext(send, false.B), false.B)
   io.c2b_data := RegNext(Mux1H(RegNext(grant), RegNext(VecInit(ioF.map(_.bits.data)))))
 }

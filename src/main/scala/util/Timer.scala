@@ -1,6 +1,7 @@
 package sifive.blocks.util
 
-import chisel3._ 
+import chisel3._
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.regmapper._
 import freechips.rocketchip.util.WideCounter
@@ -62,8 +63,8 @@ class GenericTimerCfgRegIFC (
   val maxcmp: Int,
   val scaleWidth: Int) extends Bundle {
 
-  val write = new GenericTimerCfgReg(maxcmp, scaleWidth).asInput
-  val read =  new GenericTimerCfgReg(maxcmp, scaleWidth).asOutput
+  val write = Input(new GenericTimerCfgReg(maxcmp, scaleWidth))
+  val read =  Output(new GenericTimerCfgReg(maxcmp, scaleWidth))
 
   val write_ip = Vec(maxcmp, Input(Bool()))
   val write_gang = Vec(maxcmp, Input(Bool()))
@@ -155,7 +156,7 @@ class GenericTimerIO(
     val feed = new SlaveRegIF(regWidth)
     val key = new SlaveRegIF(regWidth)
   }
-  val ip = Vec(ncmp, Bool()).asOutput
+  val ip = Output(Vec(ncmp, Bool()))
 }
 
 
@@ -208,7 +209,7 @@ trait GenericTimer {
   // reset counter when fed or elapsed
   protected val elapsed = VecInit.tabulate(ncmp){i => Mux(s(cmpWidth-1) && center(i), ~s, s) >= cmp(i)}
   protected val countReset = feed || (zerocmp && elapsed(0))
-  when (countReset) { count := 0 }
+  when (countReset) { count := 0.U }
   when (io.regs.countLo.write.valid && unlocked) { count := Cat(count >> regWidth, io.regs.countLo.write.bits) }
   if (countWidth > regWidth) when (io.regs.countHi.write.valid && unlocked) { count := Cat(io.regs.countHi.write.bits, count(regWidth-1, 0)) }
 
@@ -228,7 +229,7 @@ trait GenericTimer {
   io.regs.countHi.read := count >> regWidth
   io.regs.s.read := s
   (io.regs.cmp zip cmp) map { case (r, c) => r.read := c }
-  io.regs.feed.read := 0
+  io.regs.feed.read := 0.U
   io.regs.key.read := unlocked
   io.ip := ip
 }

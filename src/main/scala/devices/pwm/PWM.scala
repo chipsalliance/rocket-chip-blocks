@@ -1,6 +1,7 @@
 package sifive.blocks.devices.pwm
 
-import chisel3._ 
+import chisel3._
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 import org.chipsalliance.cde.config.{Field, Parameters}
@@ -24,7 +25,7 @@ class PWMTimer(val ncmp: Int = 4, val cmpWidth: Int = 16, val prefix: String = "
   def orR(v: Vec[Bool]): Bool = v.foldLeft(false.B)( _||_ )
   protected def countWidth = ((1 << scaleWidth) - 1) + cmpWidth
   protected lazy val countAlways = RegEnable(io.regs.cfg.write.countAlways, false.B, io.regs.cfg.write_countAlways && unlocked)
-  protected lazy val feed = count.carryOut(scale + UInt(cmpWidth))
+  protected lazy val feed = count.carryOut(scale + cmpWidth.U)
   protected lazy val countEn = Wire(Bool())
   override protected lazy val oneShot = RegEnable(io.regs.cfg.write.running && !countReset, false.B, (io.regs.cfg.write_running && unlocked) || countReset)
   override protected lazy val extra: Vec[Bool]  = RegEnable(io.regs.cfg.write.extra, VecInit.fill(maxcmp){false.B}, orR(io.regs.cfg.write_extra) && unlocked)
@@ -33,7 +34,7 @@ class PWMTimer(val ncmp: Int = 4, val cmpWidth: Int = 16, val prefix: String = "
   override protected lazy val deglitch = RegEnable(io.regs.cfg.write.deglitch, io.regs.cfg.write_deglitch && unlocked)(0)
   override protected lazy val sticky = RegEnable(io.regs.cfg.write.sticky, io.regs.cfg.write_sticky && unlocked)(0)
   override protected lazy val ip = {
-    val doSticky = Reg(next = (deglitch && !countReset) || sticky)
+    val doSticky = RegNext((deglitch && !countReset) || sticky)
     val sel = (0 until ncmp).map(i => s(cmpWidth-1) && center(i))
     val reg = Reg(Vec(ncmp, Bool()))
     reg := (sel & elapsed) | (~sel & (elapsed | (VecInit.fill(ncmp){doSticky} & reg)))
@@ -48,7 +49,7 @@ class PWMTimer(val ncmp: Int = 4, val cmpWidth: Int = 16, val prefix: String = "
   )
 
   class PWMTimerIO extends GenericTimerIO(regWidth, ncmp, maxcmp, scaleWidth, countWidth, cmpWidth) {
-    val gpio = Vec(ncmp, Bool()).asOutput
+    val gpio = Output(Vec(ncmp, Bool()))
   }
 
   lazy val io = IO(new PWMTimerIO)
@@ -70,7 +71,7 @@ case class PWMParams(
   cmpWidth: Int = 16) extends DeviceParams
 
 class PWMPortIO(val c: PWMParams) extends Bundle {
-  val gpio = Vec(c.ncmp, Bool()).asOutput
+  val gpio = Output(Vec(c.ncmp, Bool()))
 }
 
 abstract class PWM(busWidthBytes: Int, val params: PWMParams)(implicit p: Parameters)

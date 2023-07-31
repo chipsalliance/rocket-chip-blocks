@@ -113,7 +113,7 @@ class MockAONWrapper(w: Int, c: MockAONParams)(implicit p: Parameters) extends L
     // Note that aon.moff.corerst is synchronous
     // to aon.module.clock, so this is safe.
     val crossing_slave_reset  = ResetCatchAndSync(lfclk,
-      aon.module.io.moff.corerst | aon.module.reset)
+      aon.module.io.moff.corerst | aon.module.reset.asBool)
 
     crossing.module.clock := lfclk
     crossing.module.reset := crossing_slave_reset

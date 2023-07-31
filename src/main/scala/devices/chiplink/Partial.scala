@@ -1,7 +1,7 @@
 package sifive.blocks.devices.chiplink
 
 import chisel3._ 
-import chisel3.Decoupled
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.tilelink._
 import freechips.rocketchip.util._
@@ -10,7 +10,7 @@ class ParitalExtractor[T <: TLDataChannel](gen: T) extends Module
 {
   val io = new Bundle {
     val last = Input(Bool())
-    val i = Decoupled(gen).flip
+    val i = Flipped(Decoupled(gen))
     val o = Decoupled(gen)
   }
 

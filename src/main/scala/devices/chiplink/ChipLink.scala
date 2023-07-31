@@ -225,7 +225,7 @@ class ChipLink(val params: ChipLinkParams)(implicit p: Parameters) extends LazyM
     sinkE.io.d_clSink := sourceD.io.e_clSink
 
     // Disable ChipLink while RX+TX are in reset
-    val do_bypass = ResetCatchAndSync(clock, rx.reset) || ResetCatchAndSync(clock, tx.reset)
+    val do_bypass = ResetCatchAndSync(clock, rx.reset.asBool) || ResetCatchAndSync(clock, tx.reset.asBool)
     sbypass.module.io.bypass := do_bypass
     mbypass.module.io.bypass := do_bypass
     io.bypass := do_bypass

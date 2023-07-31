@@ -1,7 +1,7 @@
 package sifive.blocks.devices.spi
 
 import chisel3._ 
-import chisel3.util.{Decoupled, Valid, Mux1H}
+import chisel3.util._
 import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.util._
 
@@ -43,7 +43,7 @@ class SPIPhyControl(c: SPIParamsBase) extends SPIBundle(c) {
 class SPIPhysical(c: SPIParamsBase) extends Module {
   val io = new SPIBundle(c) {
     val port = new SPIPortIO(c)
-    val ctrl = new SPIPhyControl(c).asInput
+    val ctrl = Input(new SPIPhyControl(c))
     val op = Flipped(Decoupled(new SPIMicroOp(c)))
     val rx = Valid(Bits(c.frameBits.W))
   }
