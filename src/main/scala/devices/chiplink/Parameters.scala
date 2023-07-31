@@ -2,7 +2,6 @@ package sifive.blocks.devices.chiplink
 
 import chisel3._ 
 import chisel3.util.{log2Ceil, log2Up, UIntToOH, Cat, DecoupledIO}
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.tilelink._

@@ -2,7 +2,6 @@ package sifive.blocks.devices.spi
 
 import chisel3._ 
 import chisel3.util._
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.util._
 
 class SPILinkIO(c: SPIParamsBase) extends SPIBundle(c) {

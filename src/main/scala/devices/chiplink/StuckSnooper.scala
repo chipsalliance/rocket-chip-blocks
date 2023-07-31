@@ -3,7 +3,6 @@ package sifive.blocks.devices.chiplink
 
 import chisel3._
 import chisel3.util.random.LFSR
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.tilelink._

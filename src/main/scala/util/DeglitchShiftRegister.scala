@@ -2,7 +2,6 @@ package sifive.blocks.util
 
 import chisel3._ 
 import chisel3.util._
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 //Allows us to specify a different clock for a shift register
 // and to force input to be high for > 1 cycle.

@@ -2,7 +2,6 @@ package sifive.blocks.util
 
 import chisel3._ 
 import chisel3.util.{Valid}
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.regmapper._
 
 class SlaveRegIF(private val w: Int) extends Bundle {

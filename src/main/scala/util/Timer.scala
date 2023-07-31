@@ -2,7 +2,6 @@ package sifive.blocks.util
 
 import chisel3._
 import chisel3.util._
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.regmapper._
 import freechips.rocketchip.util.WideCounter
 

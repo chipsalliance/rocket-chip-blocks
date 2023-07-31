@@ -2,7 +2,6 @@ package sifive.blocks.devices.spi
 
 import chisel3._ 
 import chisel3.util.{Decoupled, Queue, Mux1H}
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 class SPIFIFOControl(c: SPIParamsBase) extends SPIBundle(c) {
   val fmt = new SPIFormat(c) with HasSPILength

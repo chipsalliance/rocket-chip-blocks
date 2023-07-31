@@ -2,7 +2,6 @@ package sifive.blocks.devices.spi
 
 import chisel3._
 import chisel3.util._
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 abstract class SPIBundle(val c: SPIParamsBase) extends Bundle
 

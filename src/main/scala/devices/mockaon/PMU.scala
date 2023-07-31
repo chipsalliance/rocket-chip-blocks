@@ -2,7 +2,6 @@ package sifive.blocks.devices.mockaon
 
 import chisel3._
 import chisel3.util._
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.util._
 import sifive.blocks.util.SRLatch
 

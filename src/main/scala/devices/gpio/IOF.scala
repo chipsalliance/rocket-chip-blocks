@@ -2,7 +2,6 @@ package sifive.blocks.devices.gpio
 
 import chisel3._
 import chisel3.util._
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import sifive.blocks.devices.pinctrl.{PinCtrl, Pin, BasePin, EnhancedPin, EnhancedPinCtrl}
 
 // This is the actual IOF interface.pa

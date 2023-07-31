@@ -1,7 +1,6 @@
 package sifive.blocks.devices.mockaon
 
 import chisel3._ 
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.regmapper._
 import freechips.rocketchip.tilelink._

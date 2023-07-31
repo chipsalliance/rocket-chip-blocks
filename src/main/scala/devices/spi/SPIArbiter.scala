@@ -2,7 +2,6 @@ package sifive.blocks.devices.spi
 
 import chisel3._ 
 import chisel3.util._
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 
 class SPIInnerIO(c: SPIParamsBase) extends SPILinkIO(c) {
   val lock = Output(Bool())

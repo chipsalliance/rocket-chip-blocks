@@ -1,7 +1,6 @@
 package sifive.blocks.devices.uart
 
 import chisel3._
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.util.SyncResetSynchronizerShiftReg
 import sifive.blocks.devices.pinctrl.{Pin}
 

@@ -1,7 +1,6 @@
 package sifive.blocks.devices.mockaon
 
 import chisel3._ 
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import org.chipsalliance.cde.config.Field
 import freechips.rocketchip.devices.debug.HasPeripheryDebug
 import freechips.rocketchip.devices.tilelink.CanHavePeripheryCLINT

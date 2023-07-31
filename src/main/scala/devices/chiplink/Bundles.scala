@@ -2,7 +2,6 @@ package sifive.blocks.devices.chiplink
 
 import chisel3._ 
 import chisel3.util.{UIntToOH, OHToUInt, Cat}
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import freechips.rocketchip.util.{rightOR,GenericParameterizedBundle}
 
 class WideDataLayerPortLane(params: ChipLinkParams) extends GenericParameterizedBundle(params) {

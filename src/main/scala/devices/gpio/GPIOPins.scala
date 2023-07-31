@@ -1,7 +1,6 @@
 package sifive.blocks.devices.gpio
 
 import chisel3._ 
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import sifive.blocks.devices.pinctrl.{Pin}
 
 // While this is a bit pendantic, it keeps the GPIO

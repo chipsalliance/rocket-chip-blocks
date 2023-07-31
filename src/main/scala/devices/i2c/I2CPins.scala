@@ -1,7 +1,6 @@
 package sifive.blocks.devices.i2c
 
 import chisel3._
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
 import chisel3.{withClockAndReset}
 import freechips.rocketchip.util.SyncResetSynchronizerShiftReg
 import sifive.blocks.devices.pinctrl.{Pin, PinCtrl}
