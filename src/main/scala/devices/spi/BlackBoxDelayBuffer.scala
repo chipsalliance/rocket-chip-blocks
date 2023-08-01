@@ -1,6 +1,6 @@
 package sifive.blocks.devices.spi
 
-import chisel3._ 
+import chisel3._
 import freechips.rocketchip.util.ShiftRegInit
 
 class BlackBoxDelayBuffer extends BlackBox {
