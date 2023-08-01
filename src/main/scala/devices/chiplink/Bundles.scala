@@ -2,27 +2,27 @@ package sifive.blocks.devices.chiplink
 
 import chisel3._ 
 import chisel3.util.{UIntToOH, OHToUInt, Cat}
-import freechips.rocketchip.util.{rightOR,GenericParameterizedBundle}
+import freechips.rocketchip.util.{rightOR}
 
-class WideDataLayerPortLane(params: ChipLinkParams) extends GenericParameterizedBundle(params) {
+class WideDataLayerPortLane(val params: ChipLinkParams) extends Bundle {
   val clk  = Output(Clock())
   val rst  = Output(Bool())
   val send = Output(Bool())
   val data = Output(UInt(params.dataBits.W))
 }
 
-class WideDataLayerPort(params: ChipLinkParams) extends GenericParameterizedBundle(params) {
+class WideDataLayerPort(val params: ChipLinkParams) extends Bundle {
   val c2b = new WideDataLayerPortLane(params)
   val b2c = Flipped(new WideDataLayerPortLane(params))
 }
 
-class DataLayer(params: ChipLinkParams) extends GenericParameterizedBundle(params) {
+class DataLayer(val params: ChipLinkParams) extends Bundle {
   val data = Output(UInt(params.dataBits.W))
   val last = Output(Bool())
   val beats = Output(UInt((params.xferBits + 1).W))
 }
 
-class CreditBump(params: ChipLinkParams) extends GenericParameterizedBundle(params) {
+class CreditBump(val params: ChipLinkParams) extends Bundle {
   val a = Output(UInt(params.creditBits.W))
   val b = Output(UInt(params.creditBits.W))
   val c = Output(UInt(params.creditBits.W))
