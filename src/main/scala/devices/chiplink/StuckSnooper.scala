@@ -30,7 +30,7 @@ class StuckSnooper(uFn: Seq[TLClientPortParameters] => TLClientPortParameters)(i
   class Impl extends LazyModuleImp(this) {
     val io = IO(new Bundle {
       val bypass = Input(Bool())
-      val pending = Input(Bool())
+      val pending = Output(Bool())
     })
 
     val Seq((in0, edgeIn0), (in1, edgeIn1)) = node.in
