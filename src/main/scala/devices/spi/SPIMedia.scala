@@ -1,35 +1,35 @@
 package sifive.blocks.devices.spi
 
-import Chisel.{defaultCompileOptions => _, _}
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
+import chisel3._ 
+import chisel3.util._
 import freechips.rocketchip.util._
 
 class SPILinkIO(c: SPIParamsBase) extends SPIBundle(c) {
-  val tx = Decoupled(Bits(width = c.frameBits))
-  val rx = Valid(Bits(width = c.frameBits)).flip
+  val tx = Decoupled(Bits(c.frameBits.W))
+  val rx = Flipped(Valid(Bits(c.frameBits.W)))
 
-  val cnt = UInt(OUTPUT, c.countBits)
-  val fmt = new SPIFormat(c).asOutput
+  val cnt = Output(UInt(c.countBits.W))
+  val fmt = Output(new SPIFormat(c))
   val cs = new Bundle {
-    val set = Bool(OUTPUT)
-    val clear = Bool(OUTPUT) // Deactivate CS
-    val hold = Bool(OUTPUT) // Supress automatic CS deactivation
+    val set = Output(Bool())
+    val clear = Output(Bool()) // Deactivate CS
+    val hold = Output(Bool()) // Supress automatic CS deactivation
   }
-  val active = Bool(INPUT)
-  val disableOE = c.oeDisableDummy.option(Bool(OUTPUT)) // disable oe during dummy cycles in flash mode
+  val active = Input(Bool())
+  val disableOE = c.oeDisableDummy.option(Output(Bool())) // disable oe during dummy cycles in flash mode
 }
 
 class SPIMedia(c: SPIParamsBase) extends Module {
   val io = new Bundle {
     val port = new SPIPortIO(c)
     val ctrl = new Bundle {
-      val sck = new SPIClocking(c).asInput
-      val dla = new SPIDelay(c).asInput
-      val cs = new SPIChipSelect(c).asInput
-      val extradel = new SPIExtraDelay(c).asInput
-      val sampledel = new SPISampleDelay(c).asInput
+      val sck = Input(new SPIClocking(c))
+      val dla = Input(new SPIDelay(c))
+      val cs = Input(new SPIChipSelect(c))
+      val extradel = Input(new SPIExtraDelay(c))
+      val sampledel = Input(new SPISampleDelay(c))
     }
-    val link = new SPILinkIO(c).flip
+    val link = Flipped(new SPILinkIO(c))
   }
 
   val phy = Module(new SPIPhysical(c))
@@ -39,36 +39,36 @@ class SPIMedia(c: SPIParamsBase) extends Module {
   phy.io.ctrl.sampledel := io.ctrl.sampledel
 
   private val op = phy.io.op
-  op.valid := Bool(true)
+  op.valid := true.B
   op.bits.fn := SPIMicroOp.Delay
-  op.bits.stb := Bool(false)
+  op.bits.stb := false.B
   op.bits.cnt := io.link.cnt
   op.bits.data := io.link.tx.bits
   op.bits.disableOE.foreach(_ := io.link.disableOE.get)
 
-  val cs = Reg(io.ctrl.cs)
+  val cs = RegNext(io.ctrl.cs)
   val cs_set = Reg(Bool())
   val cs_active = io.ctrl.cs.toggle(io.link.cs.set)
   val cs_update = (cs_active.asUInt =/= cs.dflt.asUInt)
 
-  val clear = Reg(init = Bool(false))
-  val cs_assert = Reg(init = Bool(false))
+  val clear = RegInit(false.B)
+  val cs_assert = RegInit(false.B)
   val cs_deassert = clear || (cs_update && !io.link.cs.hold)
 
   clear := clear || (io.link.cs.clear && cs_assert)
 
-  val continuous = (io.ctrl.dla.interxfr === UInt(0))
+  val continuous = (io.ctrl.dla.interxfr === 0.U)
 
   io.port.sck := phy.io.port.sck
   io.port.dq <> phy.io.port.dq
   io.port.cs := cs.dflt
 
   io.link.rx := phy.io.rx
-  io.link.tx.ready := Bool(false)
+  io.link.tx.ready := false.B
   io.link.active := cs_assert
 
-  val (s_main :: s_interxfr :: s_intercs :: Nil) = Enum(UInt(), 3)
-  val state = Reg(init = s_main)
+  val (s_main :: s_interxfr :: s_intercs :: Nil) = Enum(3)
+  val state = RegInit(s_main)
 
   switch (state) {
     is (s_main) {
@@ -80,7 +80,7 @@ class SPIMedia(c: SPIParamsBase) extends Module {
           }
         } .otherwise {
           op.bits.fn := SPIMicroOp.Transfer
-          op.bits.stb := Bool(true)
+          op.bits.stb := true.B
 
           op.valid := io.link.tx.valid
           io.link.tx.ready := op.ready
@@ -92,14 +92,14 @@ class SPIMedia(c: SPIParamsBase) extends Module {
         // Assert CS
         op.bits.cnt := io.ctrl.dla.cssck
         when (op.ready) {
-          cs_assert := Bool(true)
+          cs_assert := true.B
           cs_set := io.link.cs.set
           cs.dflt := cs_active
         }
       } .otherwise {
         // Idle
-        op.bits.cnt := UInt(0)
-        op.bits.stb := Bool(true)
+        op.bits.cnt := 0.U
+        op.bits.stb := true.B
         cs := io.ctrl.cs
       }
     }
@@ -116,9 +116,9 @@ class SPIMedia(c: SPIParamsBase) extends Module {
     is (s_intercs) {
       // Deassert CS
       op.bits.cnt := io.ctrl.dla.intercs
-      op.bits.stb := Bool(true)
-      cs_assert := Bool(false)
-      clear := Bool(false)
+      op.bits.stb := true.B
+      cs_assert := false.B
+      clear := false.B
       when (op.ready) {
         cs.dflt := cs.toggle(cs_set)
         state := s_main

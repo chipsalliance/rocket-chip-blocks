@@ -1,12 +1,12 @@
 package sifive.blocks.util
 
-import Chisel._
+import chisel3._ 
 
 class SRLatch extends BlackBox {
   val io = new Bundle {
-    val set = Bool(INPUT)
-    val reset = Bool(INPUT)
-    val q = Bool(OUTPUT)
+    val set = Input(Bool())
+    val reset = Input(Bool())
+    val q = Output(Bool())
   }
 }
 

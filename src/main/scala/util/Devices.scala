@@ -1,7 +1,6 @@
 package sifive.blocks.util
 
-import Chisel.{defaultCompileOptions => _, _}
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
+import chisel3._ 
 
 import org.chipsalliance.cde.config.{Field, Parameters}
 

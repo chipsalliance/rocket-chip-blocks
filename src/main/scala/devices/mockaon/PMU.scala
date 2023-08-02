@@ -1,8 +1,7 @@
 package sifive.blocks.devices.mockaon
 
-import Chisel.{defaultCompileOptions => _, _}
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
-import Chisel.ImplicitConversions._
+import chisel3._
+import chisel3.util._
 import freechips.rocketchip.util._
 import sifive.blocks.util.SRLatch
 
@@ -31,7 +30,7 @@ class PMUSignals extends Bundle {
 
 class PMUInstruction extends Bundle {
   val sigs = new PMUSignals
-  val dt = UInt(width = 4)
+  val dt = UInt(4.W)
 }
 
 class PMUConfig(wakeupProgramIn: Seq[Int],
@@ -57,89 +56,90 @@ class PMURegs(c: PMUConfig) extends Bundle {
   val sleepProgram = Vec(c.programLength, new SlaveRegIF(32))
 }
 
-class PMUCore(c: PMUConfig)(resetIn: Bool) extends Module(_reset = resetIn) {
+class PMUCore(c: PMUConfig)(resetIn: Bool) extends Module() {
   val io = new Bundle {
-    val wakeup = new WakeupCauses().asInput
+    val wakeup = Input(new WakeupCauses())
     val control = Valid(new PMUSignals)
-    val resetCause = UInt(INPUT, log2Ceil(new ResetCauses().getWidth))
+    val resetCause = Input(UInt(log2Ceil(new ResetCauses().getWidth).W))
     val regs = new PMURegs(c)
   }
-
-  val run = Reg(init = Bool(true))
-  val awake = Reg(init = Bool(true))
-  val unlocked = {
-    val writeAny = WatchdogTimer.writeAnyExceptKey(io.regs, io.regs.key)
-    RegEnable(io.regs.key.write.bits === WatchdogTimer.key && !writeAny, Bool(false), io.regs.key.write.valid || writeAny)
-  }
-  val wantSleep = RegEnable(Bool(true), Bool(false), io.regs.sleep.write.valid && unlocked)
-  val pc = Reg(init = UInt(0, log2Ceil(c.programLength)))
-  val wakeupCause = Reg(init = UInt(0, log2Ceil(c.nWakeupCauses)))
-  val ie = RegEnable(io.regs.ie.write.bits, io.regs.ie.write.valid && unlocked) | 1 /* POR always enabled */
-
-  val insnWidth = new PMUInstruction().getWidth
-  val wakeupProgram = c.wakeupProgram.map(v => Reg(init = UInt(v, insnWidth)))
-  val sleepProgram = c.sleepProgram.map(v => Reg(init = UInt(v, insnWidth)))
-  val insnBits = Mux(awake, wakeupProgram(pc), sleepProgram(pc))
-  val insn = new PMUInstruction().fromBits(insnBits)
-
-  val count = Reg(init = UInt(0, 1 << insn.dt.getWidth))
-  val tick = (count ^ (count + 1))(insn.dt)
-  val npc = pc +& 1
-  val last = npc >= c.programLength
-  io.control.valid := run && !last && tick
-  io.control.bits := insn.sigs
-
-  when (run) {
-    count := count + 1
-    when (tick) {
-      count := 0
-
-      require(isPow2(c.programLength))
-      run := !last
-      pc := npc
+  withReset(resetIn) {
+    val run = RegInit(true.B)
+    val awake = RegInit(true.B)
+    val unlocked = {
+      val writeAny = WatchdogTimer.writeAnyExceptKey(io.regs, io.regs.key)
+      RegEnable(io.regs.key.write.bits === WatchdogTimer.key.U && !writeAny, false.B, io.regs.key.write.valid || writeAny)
     }
-  }.otherwise {
-    val maskedWakeupCauses = ie & io.wakeup.asUInt
-    when (!awake && maskedWakeupCauses.orR) {
-      run := true
-      awake := true
-      wakeupCause := PriorityEncoder(maskedWakeupCauses)
-    }
-    when (awake && wantSleep) {
-      run := true
-      awake := false
-      wantSleep := false
-    }
-  }
+    val wantSleep = RegEnable(true.B, false.B, io.regs.sleep.write.valid && unlocked)
+    val pc = RegInit(0.U(log2Ceil(c.programLength).W))
+    val wakeupCause = RegInit(0.U(log2Ceil(c.nWakeupCauses).W))
+    val ie = RegEnable(io.regs.ie.write.bits, io.regs.ie.write.valid && unlocked) | 1.U /* POR always enabled */
 
-  io.regs.cause.read := wakeupCause | (io.resetCause << 8)
-  io.regs.ie.read := ie
-  io.regs.key.read := unlocked
-  io.regs.sleep.read := 0
+    val insnWidth = new PMUInstruction().getWidth
+    val wakeupProgram = c.wakeupProgram.map(v => RegInit(v.U(insnWidth.W)))
+    val sleepProgram = c.sleepProgram.map(v => RegInit(v.U(insnWidth.W)))
+    val insnBits = Mux(awake, wakeupProgram(pc), sleepProgram(pc))
+    val insn = insnBits.asTypeOf(new PMUInstruction())
 
-  for ((port, reg) <- (io.regs.wakeupProgram ++ io.regs.sleepProgram) zip (wakeupProgram ++ sleepProgram)) {
-    port.read := reg
-    when (port.write.valid && unlocked) { reg := port.write.bits }
+    val count = RegInit(0.U((1 << insn.dt.getWidth).W))
+    val tick = (count ^ (count + 1.U))(insn.dt)
+    val npc = pc +& 1.U
+    val last = npc >= c.programLength.U
+    io.control.valid := run && !last && tick
+    io.control.bits := insn.sigs
+
+    when (run) {
+      count := count + 1.U
+      when (tick) {
+        count := 0.U
+
+        require(isPow2(c.programLength))
+        run := !last
+        pc := npc
+      }
+    }.otherwise {
+      val maskedWakeupCauses = ie & io.wakeup.asUInt
+      when (!awake && maskedWakeupCauses.orR) {
+        run := true.B
+        awake := true.B
+        wakeupCause := PriorityEncoder(maskedWakeupCauses)
+      }
+      when (awake && wantSleep) {
+        run := true.B
+        awake := false.B
+        wantSleep := false.B
+      }
+    }
+
+    io.regs.cause.read := wakeupCause | (io.resetCause << 8)
+    io.regs.ie.read := ie
+    io.regs.key.read := unlocked
+    io.regs.sleep.read := 0.U
+
+    for ((port, reg) <- (io.regs.wakeupProgram ++ io.regs.sleepProgram) zip (wakeupProgram ++ sleepProgram)) {
+      port.read := reg
+      when (port.write.valid && unlocked) { reg := port.write.bits }
+    }
   }
 }
 
 class PMU(val c: PMUConfig) extends Module {
   val io = new Bundle {
-    val wakeup = new WakeupCauses().asInput
-    val control = new PMUSignals().asOutput
+    val wakeup = Input(new WakeupCauses())
+    val control = Output(new PMUSignals())
     val regs = new PMURegs(c)
-    val resetCauses = new ResetCauses().asInput
+    val resetCauses = Input(new ResetCauses())
   }
 
-  val coreReset = Reg(next = Reg(next = reset))
-  val core = Module(new PMUCore(c)(resetIn = coreReset))
+  val coreReset = RegNext(RegNext(reset))
+  val core = Module(new PMUCore(c)(resetIn = coreReset.asBool))
 
   io <> core.io
-  core.io.wakeup.reset := false // this is implied by resetting the PMU
+  core.io.wakeup.reset := false.B // this is implied by resetting the PMU
 
   // during aonrst, hold all control signals high
   val latch = ~AsyncResetReg(~core.io.control.bits.asUInt, core.io.control.valid)
-  io.control := io.control.fromBits(latch)
+  io.control := latch.asTypeOf(io.control)
 
   core.io.resetCause := {
     val cause = io.resetCauses.asUInt

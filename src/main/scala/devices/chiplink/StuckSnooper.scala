@@ -1,8 +1,8 @@
 
 package sifive.blocks.devices.chiplink
 
-import Chisel.{defaultCompileOptions => _, _}
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
+import chisel3._
+import chisel3.util.random.LFSR
 import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.tilelink._
@@ -29,8 +29,8 @@ class StuckSnooper(uFn: Seq[TLClientPortParameters] => TLClientPortParameters)(i
   lazy val module = new Impl
   class Impl extends LazyModuleImp(this) {
     val io = IO(new Bundle {
-      val bypass = Bool(INPUT)
-      val pending = Bool(OUTPUT)
+      val bypass = Input(Bool())
+      val pending = Output(Bool())
     })
 
     val Seq((in0, edgeIn0), (in1, edgeIn1)) = node.in
@@ -42,13 +42,13 @@ class StuckSnooper(uFn: Seq[TLClientPortParameters] => TLClientPortParameters)(i
     val (flight, next_flight) = edgeOut.inFlight(out)
 
     io.pending := (flight > 0.U)
-    when (next_flight === UInt(0)) { bypass := io.bypass }
+    when (next_flight === 0.U) { bypass := io.bypass }
     val stall = (bypass =/= io.bypass) && edgeOut.first(out.a)
 
     in0.a.ready := !stall && out.a.ready &&  bypass
     in1.a.ready := !stall && out.a.ready && !bypass
     out.a.valid := !stall && Mux(bypass, in0.a.valid, in1.a.valid)
-    def castA(x: TLBundleA) = { val ret = Wire(out.a.bits); ret <> x; ret }
+    def castA(x: TLBundleA) = { val ret = WireDefault(out.a.bits); ret <> x; ret }
     out.a.bits := Mux(bypass, castA(in0.a.bits), castA(in1.a.bits))
 
     out.d.ready := Mux(bypass, in0.d.ready, in1.d.ready)
@@ -73,26 +73,26 @@ class StuckSnooper(uFn: Seq[TLClientPortParameters] => TLClientPortParameters)(i
       in0.c.ready := out.c.ready &&  bypass_c
       in1.c.ready := out.c.ready && !bypass_c
       out.c.valid := Mux(bypass_c, in0.c.valid, in1.c.valid)
-      def castC(x: TLBundleC) = { val ret = Wire(out.c.bits); ret <> x; ret }
+      def castC(x: TLBundleC) = { val ret = WireDefault(out.c.bits); ret <> x; ret }
       out.c.bits := Mux(bypass_c, castC(in0.c.bits), castC(in1.c.bits))
 
       in0.e.ready := out.e.ready &&  bypass_c
       in1.e.ready := out.e.ready && !bypass_c
       out.e.valid := Mux(bypass_c, in0.e.valid, in1.e.valid)
-      def castE(x: TLBundleE) = { val ret = Wire(out.e.bits); ret <> x; ret }
+      def castE(x: TLBundleE) = { val ret = WireDefault(out.e.bits); ret <> x; ret }
       out.e.bits := Mux(bypass_c, castE(in0.e.bits), castE(in1.e.bits))
     } else {
-      in0.b.valid := Bool(false)
-      in0.c.ready := Bool(true)
-      in0.e.ready := Bool(true)
+      in0.b.valid := false.B
+      in0.c.ready := true.B
+      in0.e.ready := true.B
 
-      in1.b.valid := Bool(false)
-      in1.c.ready := Bool(true)
-      in1.e.ready := Bool(true)
+      in1.b.valid := false.B
+      in1.c.ready := true.B
+      in1.e.ready := true.B
 
-      out.b.ready := Bool(true)
-      out.c.valid := Bool(false)
-      out.e.valid := Bool(false)
+      out.b.ready := true.B
+      out.c.valid := false.B
+      out.e.valid := false.B
     }
   }
 }
@@ -114,7 +114,7 @@ class TLStuckSnooperTester(txns: Int)(implicit p: Parameters) extends LazyModule
 
   lazy val module = new LazyModuleImp(this) with UnitTestModule {
     io.finished := fuzz1.module.io.finished && fuzz2.module.io.finished
-    mux.module.io.bypass := LFSR64(Bool(true))(0)
+    mux.module.io.bypass := LFSR(64, true.B)(0)
   }
 }
 

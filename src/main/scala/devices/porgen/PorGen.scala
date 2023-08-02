@@ -1,8 +1,6 @@
 package sifive.blocks.devices.porgen
 
-import Chisel._
-import chisel3.{Input,Output,dontTouch} //Parameterized black box
-import chisel3.experimental.IO
+import chisel3._
 import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.interrupts._

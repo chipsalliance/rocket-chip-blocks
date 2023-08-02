@@ -1,7 +1,6 @@
 package sifive.blocks.devices.mockaon
 
-import Chisel.{defaultCompileOptions => _, _}
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
+import chisel3._ 
 import org.chipsalliance.cde.config.Field
 import freechips.rocketchip.devices.debug.HasPeripheryDebug
 import freechips.rocketchip.devices.tilelink.CanHavePeripheryCLINT
@@ -37,13 +36,13 @@ trait HasPeripheryMockAONModuleImp extends LazyModuleImp with HasPeripheryMockAO
 
   // Explicit clock & reset are unused in MockAONWrapper.
   // Tie  to check this assumption.
-  outer.aon.module.clock := Bool(false).asClock
-  outer.aon.module.reset := Bool(true)
+  outer.aon.module.clock := false.B.asClock
+  outer.aon.module.reset := true.B
 
   // Synchronize the external toggle into the clint
   val rtc_sync = SynchronizerShiftReg(outer.aon.module.io.rtc.asUInt.asBool, 3, Some("rtc"))
-  val rtc_last = Reg(init = Bool(false), next=rtc_sync)
-  val rtc_tick = Reg(init = Bool(false), next=(rtc_sync & (~rtc_last)))
+  val rtc_last = RegNext(rtc_sync, false.B)
+  val rtc_tick = RegNext(rtc_sync & (~rtc_last), false.B)
 
   outer.clintOpt.foreach { clint =>
     clint.module.io.rtcTick := rtc_tick

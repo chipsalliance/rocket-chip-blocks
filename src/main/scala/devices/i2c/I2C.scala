@@ -41,8 +41,8 @@
 
 package sifive.blocks.devices.i2c
 
-import Chisel.{defaultCompileOptions => _, _}
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
+import chisel3._
+import chisel3.util._
 import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.interrupts._
@@ -61,9 +61,9 @@ case class I2CParams(
   intXType: ClockCrossingType = NoCrossing) extends DeviceParams
 
 class I2CPin extends Bundle {
-  val in  = Bool(INPUT)
-  val out = Bool(OUTPUT)
-  val oe  = Bool(OUTPUT)
+  val in  = Input(Bool())
+  val out = Output(Bool())
+  val oe  = Output(Bool())
 }
 
 class I2CPort extends Bundle {
@@ -85,11 +85,11 @@ abstract class I2C(busWidthBytes: Int, params: I2CParams)(implicit p: Parameters
 
   lazy val module = new LazyModuleImp(this) {
 
-  val I2C_CMD_NOP   = UInt(0x00)
-  val I2C_CMD_START = UInt(0x01)
-  val I2C_CMD_STOP  = UInt(0x02)
-  val I2C_CMD_WRITE = UInt(0x04)
-  val I2C_CMD_READ  = UInt(0x08)
+  val I2C_CMD_NOP   = 0x00.U
+  val I2C_CMD_START = 0x01.U
+  val I2C_CMD_STOP  = 0x02.U
+  val I2C_CMD_WRITE = 0x04.U
+  val I2C_CMD_READ  = 0x08.U
 
   class PrescalerBundle extends Bundle{
     val hi = UInt(8.W)
@@ -122,12 +122,12 @@ abstract class I2C(busWidthBytes: Int, params: I2CParams)(implicit p: Parameters
   }
 
   // control state visible to SW/driver
-  val prescaler    = Reg(init = (new PrescalerBundle).fromBits(0xFFFF.U))
-  val control      = Reg(init = (new ControlBundle).fromBits(0.U))
-  val transmitData = Reg(init = UInt(0, 8.W))
-  val receivedData = Reg(init = UInt(0, 8.W))
-  val cmd          = Reg(init = (new CommandBundle).fromBits(0.U))
-  val status       = Reg(init = (new StatusBundle).fromBits(0.U))
+  val prescaler    = RegInit(0xFFFF.U.asTypeOf(new PrescalerBundle())) 
+  val control      = RegInit(0.U.asTypeOf(new ControlBundle())) 
+  val transmitData = RegInit(0.U(8.W))
+  val receivedData = RegInit(0.U(8.W))
+  val cmd          = RegInit(0.U.asTypeOf(new CommandBundle())) 
+  val status       = RegInit(0.U.asTypeOf(new StatusBundle())) 
 
 
   //////// Bit level ////////
@@ -136,7 +136,7 @@ abstract class I2C(busWidthBytes: Int, params: I2CParams)(implicit p: Parameters
   port.sda.out := false.B                           // i2c data line output
 
   // filter SCL and SDA signals; (attempt to) remove glitches
-  val filterCnt = Reg(init = UInt(0, 14.W))
+  val filterCnt = RegInit(0.U(14.W))
   when ( !control.coreEn ) {
     filterCnt := 0.U
   } .elsewhen (!(filterCnt.orR)) {
@@ -145,25 +145,25 @@ abstract class I2C(busWidthBytes: Int, params: I2CParams)(implicit p: Parameters
     filterCnt := filterCnt - 1.U
   }
 
-  val fSCL      = Reg(init = UInt(0x7, 3.W))
-  val fSDA      = Reg(init = UInt(0x7, 3.W))
+  val fSCL      = RegInit(0x7.U(3.W))
+  val fSDA      = RegInit(0x7.U(3.W))
   when (!(filterCnt.orR)) {
     fSCL := Cat(fSCL, port.scl.in)
     fSDA := Cat(fSDA, port.sda.in)
   }
 
-  val sSCL      = Reg(init = true.B, next = Majority(fSCL))
-  val sSDA      = Reg(init = true.B, next = Majority(fSDA))
+  val sSCL      = RegNext(Majority(fSCL), true.B)
+  val sSDA      = RegNext(Majority(fSDA), true.B)
 
-  val dSCL      = Reg(init = true.B, next = sSCL)
-  val dSDA      = Reg(init = true.B, next = sSDA)
+  val dSCL      = RegNext(sSCL, true.B)
+  val dSDA      = RegNext(sSDA, true.B)
 
-  val dSCLOen   = Reg(next = port.scl.oe) // delayed scl_oen
+  val dSCLOen   = RegNext(port.scl.oe) // delayed scl_oen
 
   // detect start condition => detect falling edge on SDA while SCL is high
   // detect stop  condition => detect rising  edge on SDA while SCL is high
-  val startCond = Reg(init = false.B, next = !sSDA &&  dSDA && sSCL)
-  val stopCond  = Reg(init = false.B, next =  sSDA && !dSDA && sSCL)
+  val startCond = RegNext(!sSDA &&  dSDA && sSCL, false.B)
+  val stopCond  = RegNext(sSDA && !dSDA && sSCL, false.B)
 
   // master drives SCL high, but another master pulls it low
   // master start counting down its low cycle now (clock synchronization)
@@ -171,11 +171,11 @@ abstract class I2C(busWidthBytes: Int, params: I2CParams)(implicit p: Parameters
 
   // slave_wait is asserted when master wants to drive SCL high, but the slave pulls it low
   // slave_wait remains asserted until the slave releases SCL
-  val slaveWait = Reg(init = false.B)
+  val slaveWait = RegInit(false.B)
   slaveWait := (port.scl.oe && !dSCLOen && !sSCL) || (slaveWait && !sSCL)
 
-  val clkEn     = Reg(init = true.B)     // clock generation signals
-  val cnt       = Reg(init = UInt(0, 16.W))  // clock divider counter (synthesis)
+  val clkEn     = RegInit(true.B)     // clock generation signals
+  val cnt       = RegInit(0.U(16.W))  // clock divider counter (synthesis)
 
   // generate clk enable signal
   when (!(cnt.orR) || !control.coreEn || sclSync ) {
@@ -190,35 +190,35 @@ abstract class I2C(busWidthBytes: Int, params: I2CParams)(implicit p: Parameters
     clkEn := false.B
   }
 
-  val sclOen     = Reg(init = true.B)
+  val sclOen     = RegInit(true.B)
   port.scl.oe := !sclOen
 
-  val sdaOen     = Reg(init = true.B)
+  val sdaOen     = RegInit(true.B)
   port.sda.oe := !sdaOen
 
-  val sdaChk     = Reg(init = false.B)       // check SDA output (Multi-master arbitration)
+  val sdaChk     = RegInit(false.B)       // check SDA output (Multi-master arbitration)
 
-  val transmitBit = Reg(init = false.B)
+  val transmitBit = RegInit(false.B)
   val receivedBit = Reg(Bool())
   when (sSCL && !dSCL) {
     receivedBit := sSDA
   }
 
-  val bitCmd      = Reg(init = UInt(0, 4.W)) // command (from byte controller)
-  val bitCmdStop  = Reg(init = false.B)
+  val bitCmd      = RegInit(0.U(4.W)) // command (from byte controller)
+  val bitCmdStop  = RegInit(false.B)
   when (clkEn) {
     bitCmdStop := bitCmd === I2C_CMD_STOP
   }
-  val bitCmdAck   = Reg(init = false.B)
+  val bitCmdAck   = RegInit(false.B)
 
   val (s_bit_idle ::
        s_bit_start_a :: s_bit_start_b :: s_bit_start_c :: s_bit_start_d :: s_bit_start_e ::
        s_bit_stop_a  :: s_bit_stop_b  :: s_bit_stop_c  :: s_bit_stop_d  ::
        s_bit_rd_a    :: s_bit_rd_b    :: s_bit_rd_c    :: s_bit_rd_d    ::
-       s_bit_wr_a    :: s_bit_wr_b    :: s_bit_wr_c    :: s_bit_wr_d    :: Nil) = Enum(UInt(), 18)
-  val bitState    = Reg(init = s_bit_idle)
+       s_bit_wr_a    :: s_bit_wr_b    :: s_bit_wr_c    :: s_bit_wr_d    :: Nil) = Enum(18)
+  val bitState    = RegInit(s_bit_idle)
 
-  val arbLost     = Reg(init = false.B, next = (sdaChk && !sSDA && sdaOen) | ((bitState =/= s_bit_idle) && stopCond && !bitCmdStop))
+  val arbLost     = RegNext((sdaChk && !sSDA && sdaOen) | ((bitState =/= s_bit_idle) && stopCond && !bitCmdStop), false.B)
 
   // bit FSM
   when (arbLost) {
@@ -358,13 +358,13 @@ abstract class I2C(busWidthBytes: Int, params: I2CParams)(implicit p: Parameters
 
 
   //////// Byte level ///////
-  val load        = Reg(init = false.B)                         // load shift register
-  val shift       = Reg(init = false.B)                         // shift shift register
-  val cmdAck      = Reg(init = false.B)                         // also done
-  val receivedAck = Reg(init = false.B)                         // from I2C slave
+  val load        = RegInit(false.B)                         // load shift register
+  val shift       = RegInit(false.B)                         // shift shift register
+  val cmdAck      = RegInit(false.B)                         // also done
+  val receivedAck = RegInit(false.B)                         // from I2C slave
   val go          = (cmd.read | cmd.write | cmd.stop) & !cmdAck
 
-  val bitCnt      = Reg(init = UInt(0, 3.W))
+  val bitCnt      = RegInit(0.U(3.W))
   when (load) {
     bitCnt := 0x7.U
   }
@@ -381,8 +381,8 @@ abstract class I2C(busWidthBytes: Int, params: I2CParams)(implicit p: Parameters
     receivedData := Cat(receivedData, receivedBit)
   }
 
-  val (s_byte_idle :: s_byte_start :: s_byte_read :: s_byte_write :: s_byte_ack :: s_byte_stop :: Nil) = Enum(UInt(), 6)
-  val byteState   = Reg(init = s_byte_idle)
+  val (s_byte_idle :: s_byte_start :: s_byte_read :: s_byte_write :: s_byte_ack :: s_byte_stop :: Nil) = Enum(6)
+  val byteState   = RegInit(s_byte_idle)
 
   when (arbLost) {
     bitCmd      := I2C_CMD_NOP
@@ -504,7 +504,7 @@ abstract class I2C(busWidthBytes: Int, params: I2CParams)(implicit p: Parameters
 
   // hack: b/c the same register offset is used to write cmd and read status
   val nextCmd = Wire(UInt(8.W))
-  cmd := (new CommandBundle).fromBits(nextCmd)
+  cmd := nextCmd.asTypeOf(new CommandBundle)
   nextCmd := cmd.asUInt & 0xFE.U  // clear IRQ_ACK bit (essentially 1 cycle pulse b/c it is overwritten by regmap below)
 
   // Note: This wins over the regmap update of nextCmd (even if something tries to write them to 1, these values take priority).
@@ -533,7 +533,7 @@ abstract class I2C(busWidthBytes: Int, params: I2CParams)(implicit p: Parameters
   status.irqFlag            := (cmdAck || arbLost || status.irqFlag) && !cmd.irqAck // interrupt request flag is always generated
 
 
-  val statusReadReady = Reg(init = true.B)
+  val statusReadReady = RegInit(true.B)
   when (cmdAck || arbLost) {    // => cmd.read or cmd.write deassert 1 cycle later => transferInProgress deassert 2 cycles later
     statusReadReady := false.B  // do not allow status read if status.transferInProgress is going to change
   }

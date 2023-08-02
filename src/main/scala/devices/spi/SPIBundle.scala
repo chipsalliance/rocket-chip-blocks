@@ -1,70 +1,70 @@
 package sifive.blocks.devices.spi
 
-import Chisel.{defaultCompileOptions => _, _}
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
+import chisel3._
+import chisel3.util._
 
 abstract class SPIBundle(val c: SPIParamsBase) extends Bundle
 
 class SPIDataIO extends Bundle {
-  val i = Bool(INPUT)
-  val o = Bool(OUTPUT)
-  val ie = Bool(OUTPUT)
-  val oe = Bool(OUTPUT)
+  val i = Input(Bool())
+  val o = Output(Bool())
+  val ie = Output(Bool())
+  val oe = Output(Bool())
 }
 
 class SPIPortIO(c: SPIParamsBase) extends SPIBundle(c) {
-  val sck = Bool(OUTPUT)
+  val sck = Output(Bool())
   val dq = Vec(4, new SPIDataIO)
-  val cs = Vec(c.csWidth, Bool(OUTPUT))
+  val cs = Vec(c.csWidth, Output(Bool()))
 }
 
 trait HasSPIProtocol {
-  val proto = Bits(width = SPIProtocol.width)
+  val proto = Bits(SPIProtocol.width.W)
 }
 trait HasSPIEndian {
-  val endian = Bits(width = SPIEndian.width)
+  val endian = Bits(SPIEndian.width.W)
 }
 class SPIFormat(c: SPIParamsBase) extends SPIBundle(c)
     with HasSPIProtocol
     with HasSPIEndian {
-  val iodir = Bits(width = SPIDirection.width)
+  val iodir = Bits(SPIDirection.width.W)
 }
 
 trait HasSPILength extends SPIBundle {
-  val len = UInt(width = c.lengthBits)
+  val len = UInt(c.lengthBits.W)
 }
 
 class SPIClocking(c: SPIParamsBase) extends SPIBundle(c) {
-  val div = UInt(width = c.divisorBits)
+  val div = UInt(c.divisorBits.W)
   val pol = Bool()
   val pha = Bool()
 }
 
 class SPIChipSelect(c: SPIParamsBase) extends SPIBundle(c) {
-  val id = UInt(width = c.csIdBits)
+  val id = UInt(c.csIdBits.W)
   val dflt = Vec(c.csWidth, Bool())
 
   def toggle(en: Bool): Vec[Bool] = {
     val mask = en << id
     val out = Cat(dflt.reverse) ^ mask
-    Vec.tabulate(c.csWidth)(out(_))
+    VecInit.tabulate(c.csWidth)(out(_))
   }
 }
 
 trait HasSPICSMode {
-  val mode = Bits(width = SPICSMode.width)
+  val mode = Bits(SPICSMode.width.W)
 }
 
 class SPIDelay(c: SPIParamsBase) extends SPIBundle(c) {
-  val cssck = UInt(width = c.delayBits)
-  val sckcs = UInt(width = c.delayBits)
-  val intercs = UInt(width = c.delayBits)
-  val interxfr = UInt(width = c.delayBits)
+  val cssck = UInt(c.delayBits.W)
+  val sckcs = UInt(c.delayBits.W)
+  val intercs = UInt(c.delayBits.W)
+  val interxfr = UInt(c.delayBits.W)
 }
 
 class SPIWatermark(c: SPIParamsBase) extends SPIBundle(c) {
-  val tx = UInt(width = c.txDepthBits)
-  val rx = UInt(width = c.rxDepthBits)
+  val tx = UInt(c.txDepthBits.W)
+  val rx = UInt(c.rxDepthBits.W)
 }
 
 class SPIControl(c: SPIParamsBase) extends SPIBundle(c) {
@@ -83,22 +83,22 @@ object SPIControl {
     ctrl.fmt.proto := SPIProtocol.Single
     ctrl.fmt.iodir := SPIDirection.Rx
     ctrl.fmt.endian := SPIEndian.MSB
-    ctrl.fmt.len := UInt(math.min(c.frameBits, 8))
-    ctrl.sck.div := UInt(3)
-    ctrl.sck.pol := Bool(false)
-    ctrl.sck.pha := Bool(false)
-    ctrl.cs.id := UInt(0)
-    ctrl.cs.dflt.foreach { _ := Bool(true) }
+    ctrl.fmt.len := (math.min(c.frameBits, 8)).U
+    ctrl.sck.div := 3.U
+    ctrl.sck.pol := false.B
+    ctrl.sck.pha := false.B
+    ctrl.cs.id := 0.U
+    ctrl.cs.dflt.foreach { _ := true.B }
     ctrl.cs.mode := SPICSMode.Auto
-    ctrl.dla.cssck := UInt(1)
-    ctrl.dla.sckcs := UInt(1)
-    ctrl.dla.intercs := UInt(1)
-    ctrl.dla.interxfr := UInt(0)
-    ctrl.wm.tx := UInt(0)
-    ctrl.wm.rx := UInt(0)
-    ctrl.extradel.coarse := UInt(0)
-    ctrl.extradel.fine := UInt(0)
-    ctrl.sampledel.sd := UInt(c.defaultSampleDel)
+    ctrl.dla.cssck := 1.U
+    ctrl.dla.sckcs := 1.U
+    ctrl.dla.intercs := 1.U
+    ctrl.dla.interxfr := 0.U
+    ctrl.wm.tx := 0.U
+    ctrl.wm.rx := 0.U
+    ctrl.extradel.coarse := 0.U
+    ctrl.extradel.fine := 0.U
+    ctrl.sampledel.sd := c.defaultSampleDel.U
     ctrl
   }
 }

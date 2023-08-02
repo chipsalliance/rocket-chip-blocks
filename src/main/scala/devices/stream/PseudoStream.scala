@@ -1,7 +1,7 @@
 package sifive.blocks.devices.stream
 
-import Chisel.{defaultCompileOptions => _, _}
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
+import chisel3._ 
+import chisel3.util._
 
 import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
@@ -21,8 +21,8 @@ case class PseudoStreamParams(
 }
 
 class PseudoStreamChannelIO(val params: PseudoStreamParams) extends Bundle {
-  val txq = Decoupled(UInt(width = params.dataBits))
-  val rxq = Decoupled(UInt(width = params.dataBits)).flip
+  val txq = Decoupled(UInt(params.dataBits.W))
+  val rxq = Flipped(Decoupled(UInt(params.dataBits.W)))
 }
 
 class PseudoStreamPortIO(val params: PseudoStreamParams) extends Bundle {
@@ -76,7 +76,7 @@ abstract class PseudoStream(busWidthBytes: Int, val params: PseudoStreamParams)(
     )
 
     (nbports zip bports).zipWithIndex.map { case ((nb, b), idx) =>
-      val txq_arb = Module(new Arbiter(UInt(width = params.dataBits), 2))
+      val txq_arb = Module(new Arbiter(UInt(params.dataBits.W), 2))
     txq_arb.io.in(0) <> nb.txq
     txq_arb.io.in(1) <> b.txq
     port.channel(idx).txq <> txq_arb.io.out

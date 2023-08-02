@@ -1,7 +1,7 @@
 package sifive.blocks.devices.gpio
 
-import Chisel.{defaultCompileOptions => _, _}
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
+import chisel3._
+import chisel3.util._
 import sifive.blocks.devices.pinctrl.{PinCtrl, Pin, BasePin, EnhancedPin, EnhancedPinCtrl}
 
 // This is the actual IOF interface.pa
@@ -16,10 +16,10 @@ class IOFCtrl extends PinCtrl {
 object IOFCtrl {
   def apply(): IOFCtrl = {
     val iof = Wire(new IOFCtrl())
-    iof.valid := Bool(false)
-    iof.oval  := Bool(false)
-    iof.oe    := Bool(false)
-    iof.ie    := Bool(false)
+    iof.valid := false.B
+    iof.oval  := false.B
+    iof.oe    := false.B
+    iof.ie    := false.B
     iof
   }
 }
@@ -27,28 +27,28 @@ object IOFCtrl {
 // Package up the inputs and outputs
 // for the IOF
 class IOFPin extends Pin {
-  val o  = new IOFCtrl().asOutput
+  val o  = Output(IOFCtrl())
 
   def default(): Unit = {
-    this.o.oval  := Bool(false)
-    this.o.oe    := Bool(false)
-    this.o.ie    := Bool(false)
-    this.o.valid := Bool(false)
+    this.o.oval  := false.B
+    this.o.oe    := false.B
+    this.o.ie    := false.B
+    this.o.valid := false.B
   }
 
-  def inputPin(pue: Bool = Bool(false) /*ignored*/): Bool = {
-    this.o.oval := Bool(false)
-    this.o.oe   := Bool(false)
-    this.o.ie   := Bool(true)
+  def inputPin(pue: Bool = false.B /*ignored*/): Bool = {
+    this.o.oval := false.B
+    this.o.oe   := false.B
+    this.o.ie   := true.B
     this.i.ival
   }
   def outputPin(signal: Bool,
-    pue: Bool = Bool(false), /*ignored*/
-    ds: Bool = Bool(false), /*ignored*/
-    ie: Bool = Bool(false)
+    pue: Bool = false.B, /*ignored*/
+    ds: Bool = false.B, /*ignored*/
+    ie: Bool = false.B
   ): Unit = {
     this.o.oval := signal
-    this.o.oe   := Bool(true)
+    this.o.oe   := true.B
     this.o.ie   := ie
   }
 }
@@ -58,7 +58,7 @@ class IOFPin extends Pin {
 object BasePinToIOF {
   def apply(pin: BasePin, iof: IOFPin): Unit = {
     iof <> pin
-    iof.o.valid := Bool(true)
+    iof.o.valid := true.B
   }
 }
 

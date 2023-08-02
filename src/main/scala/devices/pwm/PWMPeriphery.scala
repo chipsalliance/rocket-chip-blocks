@@ -1,6 +1,6 @@
 package sifive.blocks.devices.pwm
 
-import Chisel._
+import chisel3._
 import org.chipsalliance.cde.config.Field
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.subsystem.BaseSubsystem
