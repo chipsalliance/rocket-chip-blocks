@@ -127,10 +127,10 @@ class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
   lazy val module = new LazyModuleImp(this) {
 
   val txm = Module(new UARTTx(c))
-  val txq = Module(new Queue(txm.io.in.bits, c.nTxEntries))
+  val txq = Module(new Queue(UInt(c.dataBits.W), c.nTxEntries))
 
   val rxm = Module(new UARTRx(c))
-  val rxq = Module(new Queue(rxm.io.out.bits, c.nRxEntries))
+  val rxq = Module(new Queue(UInt(c.dataBits.W), c.nRxEntries))
 
   val div = RegInit(divisorInit.U(c.divisorBits.W))
 
@@ -169,7 +169,8 @@ class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
 
   rxm.io.en := rxen
   rxm.io.in := port.rxd
-  rxq.io.enq <> rxm.io.out
+  rxq.io.enq.valid := rxm.io.out.valid
+  rxq.io.enq.bits := rxm.io.out.bits
   rxm.io.div := div
   val tx_busy = (txm.io.tx_busy || txq.io.count.orR) && txen
   port.rts_n.foreach { r => r := Mux(enwire4, !(rxq.io.count < c.nRxEntries.U), tx_busy ^ invpol) }
