@@ -8,7 +8,7 @@ class SPIMicroOp(c: SPIParamsBase) extends SPIBundle(c) {
   val fn = Bits(1.W)
   val stb = Bool()
   val cnt = UInt(c.countBits.W)
-  val data = Bits(c.frameBits.W)
+  val data = UInt(c.frameBits.W)
   val disableOE = c.oeDisableDummy.option(Bool()) // disable oe during dummy cycles in flash mode
 }
 
@@ -40,12 +40,12 @@ class SPIPhyControl(c: SPIParamsBase) extends SPIBundle(c) {
 }
 
 class SPIPhysical(c: SPIParamsBase) extends Module {
-  val io = new SPIBundle(c) {
+  val io = IO(new SPIBundle(c) {
     val port = new SPIPortIO(c)
     val ctrl = Input(new SPIPhyControl(c))
     val op = Flipped(Decoupled(new SPIMicroOp(c)))
     val rx = Valid(Bits(c.frameBits.W))
-  }
+  })
 
   private val op = io.op.bits
   val ctrl = RegNext(io.ctrl)
@@ -137,7 +137,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   val rxd_fin = rxd_delayed.asUInt
   val samples = Seq(rxd_fin(1), rxd_fin(1, 0), rxd_fin)
 
-  val buffer = RegNext(op.data)
+  val buffer = Reg(UInt(c.frameBits.W))
   val buffer_in = convert(io.op.bits.data, io.ctrl.fmt)
   val shift = Mux ((totalCoarseDel > 0.U), setup_d || (sample_d && stop), sample_d)
   buffer := Mux1H(proto, samples.zipWithIndex.map { case (data, i) =>

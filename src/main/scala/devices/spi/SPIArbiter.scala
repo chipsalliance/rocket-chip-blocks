@@ -8,11 +8,11 @@ class SPIInnerIO(c: SPIParamsBase) extends SPILinkIO(c) {
 }
 
 class SPIArbiter(c: SPIParamsBase, n: Int) extends Module {
-  val io = new Bundle {
+  val io = IO(new Bundle {
     val inner = Flipped(Vec(n, new SPIInnerIO(c)))
     val outer = new SPILinkIO(c)
     val sel = Input(UInt(log2Up(n).W))
-  }
+  })
 
   val sel = RegInit(VecInit(true.B +: Seq.fill(n-1)(false.B)))
 

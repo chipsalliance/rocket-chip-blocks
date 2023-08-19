@@ -20,7 +20,7 @@ class SPILinkIO(c: SPIParamsBase) extends SPIBundle(c) {
 }
 
 class SPIMedia(c: SPIParamsBase) extends Module {
-  val io = new Bundle {
+  val io = IO(new Bundle {
     val port = new SPIPortIO(c)
     val ctrl = new Bundle {
       val sck = Input(new SPIClocking(c))
@@ -30,7 +30,7 @@ class SPIMedia(c: SPIParamsBase) extends Module {
       val sampledel = Input(new SPISampleDelay(c))
     }
     val link = Flipped(new SPILinkIO(c))
-  }
+  })
 
   val phy = Module(new SPIPhysical(c))
   phy.io.ctrl.sck := io.ctrl.sck

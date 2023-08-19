@@ -2,6 +2,7 @@ package sifive.blocks.devices.spi
 
 import chisel3._ 
 import chisel3.util._
+import chisel3.experimental.dataview._
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.regmapper._
@@ -82,7 +83,7 @@ class SPIFlashTopModule(c: SPIFlashParamsBase, outer: TLSPIFlashBase)
   val flash_en = RegInit(true.B)
 
   flash.io.ctrl.insn := insn
-  flash.io.ctrl.fmt <> ctrl.fmt
+  flash.io.ctrl.fmt <> ctrl.fmt.viewAsSupertype(new Bundle with HasSPIEndian)
   flash.io.en := flash_en
   arb.io.sel := !flash_en
 
