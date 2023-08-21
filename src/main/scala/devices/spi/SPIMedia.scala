@@ -46,7 +46,7 @@ class SPIMedia(c: SPIParamsBase) extends Module {
   op.bits.data := io.link.tx.bits
   op.bits.disableOE.foreach(_ := io.link.disableOE.get)
 
-  val cs = RegNext(io.ctrl.cs)
+  val cs = Reg(new SPIChipSelect(c))
   val cs_set = Reg(Bool())
   val cs_active = io.ctrl.cs.toggle(io.link.cs.set)
   val cs_update = (cs_active.asUInt =/= cs.dflt.asUInt)

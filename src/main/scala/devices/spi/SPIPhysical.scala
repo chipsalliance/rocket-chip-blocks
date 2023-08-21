@@ -48,7 +48,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   })
 
   private val op = io.op.bits
-  val ctrl = RegNext(io.ctrl)
+  val ctrl = Reg(new SPIPhyControl(c))
   val proto = SPIProtocol.decode(ctrl.fmt.proto)
 
   val accept = WireDefault(false.B)
@@ -59,7 +59,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   val setup_d = RegNext(setup)
 
   val scnt = RegInit(0.U(c.countBits.W))
-  val tcnt = RegNext(io.ctrl.sck.div)
+  val tcnt = Reg(UInt(c.divisorBits.W))
 
   val stop = (scnt === 0.U)
   val beat = (tcnt === 0.U)
