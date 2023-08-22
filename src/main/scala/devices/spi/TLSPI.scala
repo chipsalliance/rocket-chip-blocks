@@ -2,6 +2,7 @@ package sifive.blocks.devices.spi
 
 import chisel3._
 import chisel3.util._
+import chisel3.experimental.dataview._
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.regmapper._
@@ -69,14 +70,14 @@ class SPITopModule(c: SPIParamsBase, outer: TLSPIBase)
   val mac = Module(new SPIMedia(c))
 
   outer.port <> mac.io.port
-  fifo.io.ctrl.fmt := ctrl.fmt
-  fifo.io.ctrl.cs <> ctrl.cs
+  fifo.io.ctrl.fmt.viewAsSupertype(new SPIFormat(c) with HasSPILength) := ctrl.fmt
+  fifo.io.ctrl.cs <> ctrl.cs.viewAsSupertype(new Bundle with HasSPICSMode)
   fifo.io.ctrl.wm := ctrl.wm
   mac.io.ctrl.sck := ctrl.sck
   mac.io.ctrl.extradel := ctrl.extradel
   mac.io.ctrl.sampledel := ctrl.sampledel
   mac.io.ctrl.dla := ctrl.dla
-  mac.io.ctrl.cs <> ctrl.cs
+  mac.io.ctrl.cs <> ctrl.cs.viewAsSupertype(new SPIChipSelect(c))
 
   val ie = RegInit(0.U.asTypeOf(new SPIInterrupts())) 
   val ip = fifo.io.ip
@@ -192,7 +193,7 @@ abstract class TLSPIBase(w: Int, c: SPIParamsBase)(implicit p: Parameters) exten
 class TLSPI(w: Int, c: SPIParams)(implicit p: Parameters)
     extends TLSPIBase(w,c)(p) with HasTLControlRegMap {
   lazy val module = new SPITopModule(c, this) {
-    mac.io.link <> fifo.io.link
+    mac.io.link <> fifo.io.link.viewAsSupertype(new SPILinkIO(c))
     val mapping = (regmapBase)
     regmap(mapping:_*)
   }

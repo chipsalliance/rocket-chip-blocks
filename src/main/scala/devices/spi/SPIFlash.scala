@@ -47,19 +47,20 @@ class SPIFlashAddr(c: SPIFlashParamsBase) extends SPIBundle(c) {
 }
 
 class SPIFlashMap(c: SPIFlashParamsBase) extends Module {
-  val io = new Bundle {
+  val io = IO(new Bundle {
     val en = Input(Bool())
     val ctrl = Input(new SPIFlashControl(c))
     val addr = Flipped(Decoupled(new SPIFlashAddr(c)))
     val data = Decoupled(UInt(c.frameBits.W))
     val link = new SPIInnerIO(c)
-  }
+  })
 
   val addr = io.addr.bits.hold + 1.U
   val merge = io.link.active && (io.addr.bits.next === addr)
 
   private val insn = io.ctrl.insn
   io.link.tx.valid := true.B
+  io.link.tx.bits := insn.cmd.code
   io.link.fmt.proto := insn.addr.proto
   io.link.fmt.iodir := SPIDirection.Tx
   io.link.fmt.endian := io.ctrl.fmt.endian
