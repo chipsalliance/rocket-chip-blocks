@@ -194,6 +194,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
 
   // buffer logic
   val rxd_fin = rxd_delayed.asUInt
+  /** @todo why */
   val samples = Seq(rxd_fin(1), rxd_fin(1, 0), rxd_fin)
 
   // assuming quad
@@ -213,7 +214,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
 
   private def upper(x: UInt, n: Int) = x(c.frameBits-1, c.frameBits-n)
 
-  /** the data to be transmited */
+  /** the data to be transmited in port.dq.o */
   val txd = RegInit(0.U(io.port.dq.size.W))
   val txd_in = Mux(accept, upper(buffer_in, 4), upper(buffer, 4))
   val txd_sel = SPIProtocol.decode(Mux(accept, io.ctrl.fmt.proto, ctrl.fmt.proto))

@@ -22,7 +22,8 @@ class SPILinkIO(c: SPIParamsBase) extends SPIBundle(c) {
 /** Low level SPI protocol controller
   *
   * It recives operations from SPI Fifo(Tx) and outputs them in SPI Port(out).
-  * In the meantime, it recives response from slave device and uploads them to SPI Fifo(Rx)
+  * In the meantime, it recives response from slave device and uploads them to SPI Fifo(Rx).
+  * It maintain a statemachine for inter-frame delay and chip select function(control signals from TL bus).
   *
   * ==Component==
   *  - SPI Physical
@@ -31,6 +32,16 @@ class SPILinkIO(c: SPIParamsBase) extends SPIBundle(c) {
   * ==Datapass==
   * {{{
   * TL bus <-> SPI Fifo <-> SPI Media <-> SPI Port
+  * }}}
+  *
+  * ==ControlPass==
+  * {{{
+  *   S_main : 3 possible job
+  *            transfer op to SPIPhysical /(drive op.valid)
+  *            assert CS
+  *            idle
+  *   s_interxfr: process inter-frame delay cycles
+  *   s_intercs: Deassert CS
   * }}}
   */
 class SPIMedia(c: SPIParamsBase) extends Module {
