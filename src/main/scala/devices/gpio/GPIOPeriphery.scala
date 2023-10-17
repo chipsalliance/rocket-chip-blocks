@@ -18,7 +18,7 @@ trait HasPeripheryGPIOBundle {
   val iof: Seq[Option[IOFPortIO]]
 }
 
-trait HasPeripheryGPIOModuleImp extends LazyModuleImp with HasPeripheryGPIOBundle {
+trait HasPeripheryGPIOModuleImp extends LazyRawModuleImp with HasPeripheryGPIOBundle {
   val outer: HasPeripheryGPIO
   val gpio = outer.gpioNodes.zipWithIndex.map { case(n,i) => n.makeIO()(ValName(s"gpio_$i")) }
   val iof = outer.iofNodes.zipWithIndex.map { case(o,i) => o.map { n => n.makeIO()(ValName(s"iof_$i")) } }

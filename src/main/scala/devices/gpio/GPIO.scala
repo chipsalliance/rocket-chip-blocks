@@ -281,7 +281,7 @@ case class GPIOAttachParams(
           cbus.clockNode
         case _: AsynchronousCrossing =>
           val gpioClockGroup = ClockGroup()
-          gpioClockGroup := where.asyncClockGroupsNode
+          gpioClockGroup := where.allClockGroupsNode
           blockerOpt.map { _.clockNode := gpioClockGroup } .getOrElse { gpioClockGroup }
       })
 

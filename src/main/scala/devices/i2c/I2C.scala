@@ -613,7 +613,7 @@ case class I2CAttachParams(
           tlbus.clockNode
         case _: AsynchronousCrossing =>
           val i2cClockGroup = ClockGroup()
-          i2cClockGroup := where.asyncClockGroupsNode
+          i2cClockGroup := where.allClockGroupsNode
           blockerOpt.map { _.clockNode := i2cClockGroup } .getOrElse { i2cClockGroup }
       })
 

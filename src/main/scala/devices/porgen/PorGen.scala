@@ -137,7 +137,7 @@ case class PorGenAttachParams (
           tlbus.clockNode
         case _: AsynchronousCrossing =>
           val porgenClockGroup = ClockGroup()
-          porgenClockGroup := where.asyncClockGroupsNode
+          porgenClockGroup := where.allClockGroupsNode
           blockerOpt.map { _.clockNode := porgenClockGroup } .getOrElse { porgenClockGroup }
       })
 

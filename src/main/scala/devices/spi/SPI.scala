@@ -50,7 +50,7 @@ case class SPIAttachParams(
           tlbus.clockNode
         case _: AsynchronousCrossing =>
           val spiClockGroup = ClockGroup()
-          spiClockGroup := where.asyncClockGroupsNode
+          spiClockGroup := where.allClockGroupsNode
           blockerOpt.map { _.clockNode := spiClockGroup } .getOrElse { spiClockGroup }
       })
 
@@ -105,7 +105,7 @@ case class SPIFlashAttachParams(
           cbus.clockNode
         case _: AsynchronousCrossing =>
           val qspiClockGroup = ClockGroup()
-          qspiClockGroup := where.asyncClockGroupsNode
+          qspiClockGroup := where.allClockGroupsNode
           blockerOpt.map { _.clockNode := qspiClockGroup } .getOrElse { qspiClockGroup }
       })
 

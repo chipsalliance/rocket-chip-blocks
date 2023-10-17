@@ -18,7 +18,7 @@ trait HasPeripherySPIBundle {
   val spi: Seq[SPIPortIO]
 }
 
-trait HasPeripherySPIModuleImp extends LazyModuleImp with HasPeripherySPIBundle {
+trait HasPeripherySPIModuleImp extends LazyRawModuleImp with HasPeripherySPIBundle {
   val outer: HasPeripherySPI
   val spi  = outer.spiNodes.zipWithIndex.map  { case(n,i) => n.makeIO()(ValName(s"spi_$i")) }
 }
@@ -36,7 +36,7 @@ trait HasPeripherySPIFlashBundle {
   val qspi: Seq[SPIPortIO]
 }
 
-trait HasPeripherySPIFlashModuleImp extends LazyModuleImp with HasPeripherySPIFlashBundle {
+trait HasPeripherySPIFlashModuleImp extends LazyRawModuleImp with HasPeripherySPIFlashBundle {
   val outer: HasPeripherySPIFlash
   val qspi = outer.qspiNodes.zipWithIndex.map { case(n,i) => n.makeIO()(ValName(s"qspi_$i")) }
 }
