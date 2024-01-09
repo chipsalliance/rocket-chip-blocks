@@ -34,26 +34,6 @@ trait DeviceAttachParams {
   def attachTo(where: Attachable)(implicit p: Parameters): LazyModule
 }
 
-case class DevicesSubsystemParams()
-
-// TODO: Use DevicesSubsystemParams as the constructor arugment once Attachable's ibus and
-// location are made into defs instead of vals
-class DevicesSubsystem(
-  val hierarchyName: String,
-  val location: HierarchicalLocation,
-  val ibus: InterruptBusWrapper,
-  val asyncClockGroupsNode: ClockGroupEphemeralNode)(implicit p: Parameters) extends LazyModule
-    with Attachable
-    with HasConfigurableTLNetworkTopology
-    with CanHaveDevices {
-
-  def devicesSubhierarchies = None
-
-  lazy val module = new LazyModuleImp(this) {
-    override def desiredName: String = hierarchyName
-  }
-}
-
 /*
    Copyright 2016 SiFive, Inc.
 

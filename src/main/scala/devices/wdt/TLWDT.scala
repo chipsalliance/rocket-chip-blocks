@@ -87,7 +87,7 @@ case class WDTAttachParams(
           tlbus.clockNode
         case _: AsynchronousCrossing =>
           val wdtClockGroup = ClockGroup()
-          wdtClockGroup := where.asyncClockGroupsNode
+          wdtClockGroup := where.allClockGroupsNode
           blockerOpt.map { _.clockNode := wdtClockGroup } .getOrElse { wdtClockGroup }
       })
 

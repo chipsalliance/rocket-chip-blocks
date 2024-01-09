@@ -123,7 +123,7 @@ case class PseudoStreamAttachParams(
           tlbus.clockNode
         case _: AsynchronousCrossing =>
           val streamClockGroup = ClockGroup()
-          streamClockGroup := where.asyncClockGroupsNode
+          streamClockGroup := where.allClockGroupsNode
           blockerOpt.map { _.clockNode := streamClockGroup } .getOrElse { streamClockGroup }
       })
 

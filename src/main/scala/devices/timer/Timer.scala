@@ -95,7 +95,7 @@ case class TimerAttachParams(
           tlbus.clockNode
         case _: AsynchronousCrossing =>
           val timerClockGroup = ClockGroup()
-          timerClockGroup := where.asyncClockGroupsNode
+          timerClockGroup := where.allClockGroupsNode
           blockerOpt.map { _.clockNode := timerClockGroup } .getOrElse { timerClockGroup }
       })
 

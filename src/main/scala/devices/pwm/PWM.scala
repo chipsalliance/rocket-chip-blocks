@@ -135,7 +135,7 @@ case class PWMAttachParams(
           tlbus.clockNode
         case _: AsynchronousCrossing =>
           val pwmClockGroup = ClockGroup()
-          pwmClockGroup := where.asyncClockGroupsNode
+          pwmClockGroup := where.allClockGroupsNode
           blockerOpt.map { _.clockNode := pwmClockGroup } .getOrElse { pwmClockGroup }
       })
 

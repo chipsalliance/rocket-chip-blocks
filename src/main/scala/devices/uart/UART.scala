@@ -287,7 +287,7 @@ case class UARTAttachParams(
           tlbus.clockNode
         case _: AsynchronousCrossing =>
           val uartClockGroup = ClockGroup()
-          uartClockGroup := where.asyncClockGroupsNode
+          uartClockGroup := where.allClockGroupsNode
           blockerOpt.map { _.clockNode := uartClockGroup } .getOrElse { uartClockGroup }
       })
 
