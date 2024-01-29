@@ -46,7 +46,7 @@ class MockAONWrapper(w: Int, c: MockAONParams)(implicit p: Parameters) extends L
   val node = aon.node := crossing.node := isolation.node
 
   // crossing lives outside in Periphery
-  val intnode = IntSyncCrossingSource(alreadyRegistered = true) := aon.intnode
+  val intnode = aon.intXing(alreadyRegistered = true)
 
   lazy val module = new Impl
   class Impl extends LazyModuleImp(this) {
