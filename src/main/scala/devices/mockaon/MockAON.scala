@@ -4,6 +4,8 @@ import chisel3._
 import org.chipsalliance.cde.config.Parameters
 import freechips.rocketchip.regmapper._
 import freechips.rocketchip.tilelink._
+import freechips.rocketchip.interrupts._
+import freechips.rocketchip.diplomacy._
 
 import sifive.blocks.util.GenericTimer
 
@@ -48,59 +50,58 @@ trait HasMockAONBundleContents extends Bundle {
   val resetCauses = Input(new ResetCauses())
 }
 
-trait HasMockAONModuleContents extends Module with HasRegMap {
-  val io: HasMockAONBundleContents
-  val params: MockAONParams
-  val c = params
+class TLMockAON(w: Int, c: MockAONParams)(implicit p: Parameters)
+  extends RegisterRouter(RegisterRouterParams("aon", Seq("sifive,aon0"), c.address, beatBytes=w, size=c.size, concurrency=1))(p)
+    with HasTLControlRegMap
+    with HasInterruptSources {
+  override def nInterrupts = 2
+  override lazy val module = new Impl
+  class Impl extends LazyModuleImp(this) {
+    val params = c
+    val io = IO(new Bundle with HasMockAONBundleContents)
+    // the expectation here is that Chisel's implicit reset is aonrst,
+    // which is asynchronous, so don't use synchronous-reset registers.
 
-  // the expectation here is that Chisel's implicit reset is aonrst,
-  // which is asynchronous, so don't use synchronous-reset registers.
+    val rtc = Module(new RTC)
 
-  val rtc = Module(new RTC)
-
-  val pmu = Module(new PMU(new DevKitPMUConfig))
-  io.moff <> pmu.io.control
-  io.pmu.vddpaden := pmu.io.control.vddpaden
-  pmu.io.wakeup.dwakeup := io.pmu.dwakeup
-  pmu.io.wakeup.awakeup := false.B
-  pmu.io.wakeup.rtc := rtc.io.ip(0)
-  pmu.io.resetCauses := io.resetCauses
-  val pmuRegMap = {
-    val regs = pmu.io.regs.wakeupProgram ++ pmu.io.regs.sleepProgram ++
+    val pmu = Module(new PMU(new DevKitPMUConfig))
+    io.moff <> pmu.io.control
+    io.pmu.vddpaden := pmu.io.control.vddpaden
+    pmu.io.wakeup.dwakeup := io.pmu.dwakeup
+    pmu.io.wakeup.awakeup := false.B
+    pmu.io.wakeup.rtc := rtc.io.ip(0)
+    pmu.io.resetCauses := io.resetCauses
+    val pmuRegMap = {
+      val regs = pmu.io.regs.wakeupProgram ++ pmu.io.regs.sleepProgram ++
       Seq(pmu.io.regs.ie, pmu.io.regs.cause, pmu.io.regs.sleep, pmu.io.regs.key)
-    for ((r, i) <- regs.zipWithIndex)
+      for ((r, i) <- regs.zipWithIndex)
       yield (c.pmuOffset + c.regBytes*i) -> Seq(r.toRegField())
-  }
-  interrupts(1) := rtc.io.ip(0)
+    }
+    interrupts(1) := rtc.io.ip(0)
 
-  val wdog = Module(new WatchdogTimer)
-  io.wdog_rst := wdog.io.rst
-  wdog.io.corerst := pmu.io.control.corerst
-  interrupts(0) := wdog.io.ip(0)
+    val wdog = Module(new WatchdogTimer)
+    io.wdog_rst := wdog.io.rst
+    wdog.io.corerst := pmu.io.control.corerst
+    interrupts(0) := wdog.io.ip(0)
 
-  // If there are multiple lfclks to choose from, we can mux them here.
-  io.lfclk := io.lfextclk
+    // If there are multiple lfclks to choose from, we can mux them here.
+    io.lfclk := io.lfextclk
 
-  val backupRegs = Seq.fill(c.nBackupRegs)(Reg(UInt((c.regBytes * 8).W)))
-  val backupRegMap =
-    for ((reg, i) <- backupRegs.zipWithIndex)
+    val backupRegs = Seq.fill(c.nBackupRegs)(Reg(UInt((c.regBytes * 8).W)))
+    val backupRegMap =
+      for ((reg, i) <- backupRegs.zipWithIndex)
       yield (c.backupRegOffset + c.regBytes*i) -> Seq(RegField(reg.getWidth, RegReadFn(reg), RegWriteFn(reg)))
 
-  regmap((backupRegMap ++
-    GenericTimer.timerRegMap(wdog, c.wdogOffset, c.regBytes) ++
-    GenericTimer.timerRegMap(rtc, c.rtcOffset, c.regBytes) ++
-    pmuRegMap):_*)
+    regmap((backupRegMap ++
+      GenericTimer.timerRegMap(wdog, c.wdogOffset, c.regBytes) ++
+      GenericTimer.timerRegMap(rtc, c.rtcOffset, c.regBytes) ++
+      pmuRegMap):_*)
 
+
+  }
 }
-
-class TLMockAON(w: Int, c: MockAONParams)(implicit p: Parameters)
-  extends TLRegisterRouter(c.address, "aon", Seq("sifive,aon0"), interrupts = 2, size = c.size, beatBytes = w, concurrency = 1)(
-  new TLRegBundle(c, _)    with HasMockAONBundleContents)(
-  new TLRegModule(c, _, _) with HasMockAONModuleContents)
-
 /*
    Copyright 2016 SiFive, Inc.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
