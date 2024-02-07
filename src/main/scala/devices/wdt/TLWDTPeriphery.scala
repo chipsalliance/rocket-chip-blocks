@@ -18,18 +18,18 @@ import sifive.blocks.devices.mockaon.WatchdogTimer
 case object PeripheryWDTKey extends Field[Seq[WDTParams]](Nil)
 
 trait HasPeripheryWDT { this: BaseSubsystem =>
-    val wdtNodes = p(PeripheryWDTKey).map { ps =>
-        WDTAttachParams(ps).attachTo(this).ioNode.makeSink()
-    }
+  val wdtNodes = p(PeripheryWDTKey).map { ps =>
+    WDTAttachParams(ps).attachTo(this).ioNode.makeSink()
+  }
 }
 
 trait HasPeripheryWDTBundle {
-    val wdt: Seq[WDTPortIO]
+  val wdt: Seq[WDTPortIO]
 }
 
 trait HasPeripheryWDTModuleImp extends LazyRawModuleImp with HasPeripheryWDTBundle{
-    val outer: HasPeripheryWDT
-    val wdt = outer.wdtNodes.zipWithIndex.map  { case(n,i) => n.makeIO()(ValName(s"wdt_$i"))}
+  val outer: HasPeripheryWDT
+  val wdt = outer.wdtNodes.zipWithIndex.map  { case(n,i) => n.makeIO()(ValName(s"wdt_$i"))}
 }
 
 /*
