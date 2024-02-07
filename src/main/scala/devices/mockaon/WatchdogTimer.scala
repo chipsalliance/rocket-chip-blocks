@@ -24,6 +24,7 @@ class WatchdogTimer extends Module with GenericTimer {
   protected def countWidth = 31
   protected def cmpWidth = 16
   protected def ncmp = 1
+  override protected def maxcmp: Int = 1
   protected lazy val countAlways = AsyncResetReg(io.regs.cfg.write.countAlways, io.regs.cfg.write_countAlways && unlocked)(0)
   override protected lazy val countAwake = AsyncResetReg(io.regs.cfg.write.running, io.regs.cfg.write_running && unlocked)(0)
   protected lazy val countEn = {
