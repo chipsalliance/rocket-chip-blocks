@@ -51,14 +51,13 @@ class Timer(w: Int, c: TimerParams)(implicit p: Parameters)
 trait HasPeripheryTimer { this: BaseSubsystem =>
   val timerParams = p(PeripheryTimerKey)
   val timers = timerParams map { params =>
-    val timer = LazyModule(new Timer(cbus.beatBytes, params))
+    val timer_domain = cbus.generateSynchronousDomain
+    val timer = timer_domain { LazyModule(new Timer(cbus.beatBytes, params)) }
     cbus.coupleTo(s"slave_named_timer") {
       timer.controlXing(NoCrossing) := TLFragmenter(cbus) := _
     }
 
     ibus.fromSync := timer.intXing(NoCrossing)
-    InModuleBody { timer.module.clock := cbus.module.clock }
-
     timer
   }
 }

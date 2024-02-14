@@ -85,10 +85,19 @@ class GenericTimerCfgRegIFC (
     }
 
     // Defaults, because only ncmp of these are assigned by the regmap below.
+    write.ip     := VecInit.fill(maxcmp){false.B}
+    write.gang   := VecInit.fill(maxcmp){false.B}
+    write.extra  := VecInit.fill(maxcmp){false.B}
+    write.center := VecInit.fill(maxcmp){false.B}
     write_ip     := VecInit.fill(maxcmp){false.B}
     write_gang   := VecInit.fill(maxcmp){false.B}
     write_extra  := VecInit.fill(maxcmp){false.B}
     write_center := VecInit.fill(maxcmp){false.B}
+
+    // unused
+    write.reserved0 := DontCare
+    write.reserved1 := DontCare
+    write.reserved2 := DontCare
 
     RegFieldGroup(s"${prefix}cfg", Some(s"${prefix} Configuration"),
       Seq(
@@ -213,7 +222,7 @@ trait GenericTimer {
   if (countWidth > regWidth) when (io.regs.countHi.write.valid && unlocked) { count := Cat(io.regs.countHi.write.bits, count(regWidth-1, 0)) }
 
   io.regs.cfg.read := 0.U.asTypeOf(new GenericTimerCfgReg(maxcmp, scaleWidth))
-  io.regs.cfg.read.ip := ip
+  for (i <- 0 until ncmp) { io.regs.cfg.read.ip(i) := ip(i) }
   io.regs.cfg.read.gang := gang
   io.regs.cfg.read.extra := extra
   io.regs.cfg.read.center := center
