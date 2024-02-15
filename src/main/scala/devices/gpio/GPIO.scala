@@ -243,6 +243,36 @@ abstract class GPIO(busWidthBytes: Int, c: GPIOParams)(implicit p: Parameters)
       iofPort.get.iof_0(pin).i.ival := inSyncReg(pin)
       iofPort.get.iof_1(pin).i.ival := inSyncReg(pin)
     }
+  }
+
+  // Tie off undriven pins/wires.
+
+  if (!c.includeIOF) {
+    iofEnReg.io.d  := 0.U
+    iofEnReg.io.en := false.B
+    Seq(iof0Ctrl, iof1Ctrl, iofCtrl).foreach { ctrls =>
+      ctrls.foreach { ctrl =>
+        ctrl.oval  := false.B
+        ctrl.oe    := false.B
+        ctrl.ie    := false.B
+        ctrl.valid := false.B
+      }
+    }
+    iofPlusSwPinCtrl.foreach { ctrl =>
+      ctrl.oval := false.B
+      ctrl.oe   := false.B
+      ctrl.ie   := false.B
+      ctrl.pue  := false.B
+      ctrl.ds   := false.B
+      ctrl.ps   := false.B
+      ctrl.ds1  := false.B
+      ctrl.poe  := false.B
+    }
+  }
+
+  if (!c.hasPOE) {
+    poeReg.io.d  := 0.U
+    poeReg.io.en := false.B
   }}
 }
 
