@@ -135,7 +135,7 @@ class SPIPhysical(c: SPIParamsBase) extends Module {
   }
 
   val rxd_fin = rxd_delayed.asUInt
-  val samples = Seq(rxd_fin(0), rxd_fin(1, 0), rxd_fin)
+  val samples = Seq(rxd_fin(1), rxd_fin(1, 0), rxd_fin)
 
   val buffer = Reg(UInt(c.frameBits.W))
   val buffer_in = convert(io.op.bits.data, io.ctrl.fmt)
