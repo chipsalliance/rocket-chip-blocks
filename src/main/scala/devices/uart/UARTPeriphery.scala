@@ -11,16 +11,7 @@ trait HasPeripheryUART { this: BaseSubsystem =>
     UARTAttachParams(ps).attachTo(this)
   }
   val uartNodes = uarts.map(_.ioNode.makeSink())
-}
-
-trait HasPeripheryUARTBundle {
-  val uart: Seq[UARTPortIO]
-}
-
-
-trait HasPeripheryUARTModuleImp extends LazyRawModuleImp with HasPeripheryUARTBundle {
-  val outer: HasPeripheryUART
-  val uart = outer.uartNodes.zipWithIndex.map { case(n,i) => n.makeIO()(ValName(s"uart_$i")) }
+  val uart = InModuleBody { uartNodes.zipWithIndex.map { case(n,i) => n.makeIO()(ValName(s"uart_$i")) } }
 }
 
 /*
