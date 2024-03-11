@@ -11,15 +11,7 @@ trait HasPeripheryI2C { this: BaseSubsystem =>
   val i2cNodes =  p(PeripheryI2CKey).map { ps =>
     I2CAttachParams(ps).attachTo(this).ioNode.makeSink()
   }
-}
-
-trait HasPeripheryI2CBundle {
-  val i2c: Seq[I2CPort]
-}
-
-trait HasPeripheryI2CModuleImp extends LazyRawModuleImp with HasPeripheryI2CBundle {
-  val outer: HasPeripheryI2C
-  val i2c  = outer.i2cNodes.zipWithIndex.map  { case(n,i) => n.makeIO()(ValName(s"i2c_$i")) }
+  val i2c  = InModuleBody { i2cNodes.zipWithIndex.map  { case(n,i) => n.makeIO()(ValName(s"i2c_$i")) } }
 }
 
 /*

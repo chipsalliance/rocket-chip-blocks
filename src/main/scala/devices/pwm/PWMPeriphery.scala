@@ -11,15 +11,7 @@ trait HasPeripheryPWM { this: BaseSubsystem =>
   val pwmNodes = p(PeripheryPWMKey).map { ps =>
     PWMAttachParams(ps).attachTo(this).ioNode.makeSink 
   }
-}
-
-trait HasPeripheryPWMBundle {
-  val pwm: Seq[PWMPortIO]
-}
-
-trait HasPeripheryPWMModuleImp extends LazyRawModuleImp with HasPeripheryPWMBundle {
-  val outer: HasPeripheryPWM
-  val pwm  = outer.pwmNodes.zipWithIndex.map  { case(n,i) => n.makeIO()(ValName(s"pwm_$i")) }
+  val pwm  = InModuleBody { pwmNodes.zipWithIndex.map  { case(n,i) => n.makeIO()(ValName(s"pwm_$i")) } }
 }
 
 /*

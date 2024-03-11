@@ -11,17 +11,9 @@ trait HasPeripheryGPIO { this: BaseSubsystem =>
     val gpio = GPIOAttachParams(ps).attachTo(this)
     (gpio.ioNode.makeSink(), gpio.iofNode.map { _.makeSink() })
   }.unzip
-}
 
-trait HasPeripheryGPIOBundle {
-  val gpio: Seq[GPIOPortIO]
-  val iof: Seq[Option[IOFPortIO]]
-}
-
-trait HasPeripheryGPIOModuleImp extends LazyRawModuleImp with HasPeripheryGPIOBundle {
-  val outer: HasPeripheryGPIO
-  val gpio = outer.gpioNodes.zipWithIndex.map { case(n,i) => n.makeIO()(ValName(s"gpio_$i")) }
-  val iof = outer.iofNodes.zipWithIndex.map { case(o,i) => o.map { n => n.makeIO()(ValName(s"iof_$i")) } }
+  val gpio = InModuleBody { gpioNodes.zipWithIndex.map { case(n,i) => n.makeIO()(ValName(s"gpio_$i")) } }
+  val iof = InModuleBody { iofNodes.zipWithIndex.map { case(o,i) => o.map { n => n.makeIO()(ValName(s"iof_$i")) } } }
 }
 
 /*

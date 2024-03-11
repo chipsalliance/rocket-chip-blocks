@@ -12,15 +12,7 @@ trait HasPeripherySPI { this: BaseSubsystem =>
     SPIAttachParams(ps).attachTo(this)
   }
   val spiNodes = tlSpiNodes.map { n => n.ioNode.makeSink() }
-}
-
-trait HasPeripherySPIBundle {
-  val spi: Seq[SPIPortIO]
-}
-
-trait HasPeripherySPIModuleImp extends LazyRawModuleImp with HasPeripherySPIBundle {
-  val outer: HasPeripherySPI
-  val spi  = outer.spiNodes.zipWithIndex.map  { case(n,i) => n.makeIO()(ValName(s"spi_$i")) }
+  val spi = InModuleBody { spiNodes.zipWithIndex.map  { case(n,i) => n.makeIO()(ValName(s"spi_$i")) } }
 }
 
 case object PeripherySPIFlashKey extends Field[Seq[SPIFlashParams]](Nil)
@@ -30,15 +22,7 @@ trait HasPeripherySPIFlash { this: BaseSubsystem =>
     SPIFlashAttachParams(ps, fBufferDepth = 8).attachTo(this)
   }
   val qspiNodes = tlQSpiNodes.map { n => n.ioNode.makeSink() }
-}
-
-trait HasPeripherySPIFlashBundle {
-  val qspi: Seq[SPIPortIO]
-}
-
-trait HasPeripherySPIFlashModuleImp extends LazyRawModuleImp with HasPeripherySPIFlashBundle {
-  val outer: HasPeripherySPIFlash
-  val qspi = outer.qspiNodes.zipWithIndex.map { case(n,i) => n.makeIO()(ValName(s"qspi_$i")) }
+  val qspi = InModuleBody { qspiNodes.zipWithIndex.map { case(n,i) => n.makeIO()(ValName(s"qspi_$i")) } }
 }
 
 /*
