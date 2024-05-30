@@ -267,7 +267,7 @@ case class UARTAttachParams(
     val name = s"uart_${UART.nextId()}"
     val tlbus = where.locateTLBusWrapper(controlWhere)
     val divinit = (tlbus.dtsFrequency.get / device.initBaudRate).toInt
-    val uartClockDomainWrapper = LazyModule(new ClockSinkDomain(take = None))
+    val uartClockDomainWrapper = LazyModule(new ClockSinkDomain(take = None, name = Some("TLUART")))
     val uart = uartClockDomainWrapper { LazyModule(new TLUART(tlbus.beatBytes, device, divinit)) }
     uart.suggestName(name)
 
