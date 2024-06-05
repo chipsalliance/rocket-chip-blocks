@@ -275,7 +275,7 @@ case class UARTAttachParams(
 
       val blockerOpt = blockerAddr.map { a =>
         val blocker = LazyModule(new TLClockBlocker(BasicBusBlockerParams(a, tlbus.beatBytes, tlbus.beatBytes)))
-        tlbus.coupleTo(s"bus_blocker_for_$name") { blocker.controlNode := TLFragmenter(tlbus) := _ }
+        tlbus.coupleTo(s"bus_blocker_for_$name") { blocker.controlNode := TLFragmenter(tlbus, Some("UART_Blocker")) := _ }
         blocker
       }
 
@@ -292,7 +292,7 @@ case class UARTAttachParams(
       })
 
       (uart.controlXing(controlXType)
-        := TLFragmenter(tlbus)
+        := TLFragmenter(tlbus, Some("UART"))
         := blockerOpt.map { _.node := bus } .getOrElse { bus })
     }
 
