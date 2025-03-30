@@ -182,10 +182,10 @@ abstract class GPIO(busWidthBytes: Int, c: GPIOParams)(implicit p: Parameters)
   val swPinCtrl = Wire(Vec(c.width, new EnhancedPinCtrl()))
 
   // This strips off the valid.
-  val iof0Ctrl = Wire(Vec(c.width, new IOFCtrl()))
-  val iof1Ctrl = Wire(Vec(c.width, new IOFCtrl()))
+  val iof0Ctrl = Wire(Vec(c.width, new IOFCtrl))
+  val iof1Ctrl = Wire(Vec(c.width, new IOFCtrl))
 
-  val iofCtrl = Wire(Vec(c.width, new IOFCtrl()))
+  val iofCtrl = Wire(Vec(c.width, new IOFCtrl))
   val iofPlusSwPinCtrl = Wire(Vec(c.width, new EnhancedPinCtrl()))
 
   for (pin <- 0 until c.width) {
@@ -204,22 +204,32 @@ abstract class GPIO(busWidthBytes: Int, c: GPIOParams)(implicit p: Parameters)
 
     if (c.includeIOF) {
       // Allow SW Override for invalid inputs.
-      iof0Ctrl(pin)      <> swPinCtrl(pin)
+      iof0Ctrl(pin).oval    := swPinCtrl(pin).oval
+      iof0Ctrl(pin).oe      := swPinCtrl(pin).oe
+      iof0Ctrl(pin).ie      := swPinCtrl(pin).ie
+      iof0Ctrl(pin).valid   := false.B
+
       when (iofPort.get.iof_0(pin).o.valid) {
-        iof0Ctrl(pin)    <> iofPort.get.iof_0(pin).o
+        iof0Ctrl(pin)    := iofPort.get.iof_0(pin).o
       }
 
-      iof1Ctrl(pin)      <> swPinCtrl(pin)
+      iof1Ctrl(pin).oval    := swPinCtrl(pin).oval
+      iof1Ctrl(pin).oe      := swPinCtrl(pin).oe
+      iof1Ctrl(pin).ie      := swPinCtrl(pin).ie
+      iof1Ctrl(pin).valid   := false.B
+
       when (iofPort.get.iof_1(pin).o.valid) {
-        iof1Ctrl(pin)    <> iofPort.get.iof_1(pin).o
+        iof1Ctrl(pin)    := iofPort.get.iof_1(pin).o
       }
 
       // Select IOF 0 vs. IOF 1.
-      iofCtrl(pin)       <> Mux(iofSelReg(pin), iof1Ctrl(pin), iof0Ctrl(pin))
+      iofCtrl(pin)       := Mux(iofSelReg(pin), iof1Ctrl(pin), iof0Ctrl(pin))
 
       // Allow SW Override for things IOF doesn't control.
-      iofPlusSwPinCtrl(pin) <> swPinCtrl(pin)
-      iofPlusSwPinCtrl(pin) <> iofCtrl(pin)
+      iofPlusSwPinCtrl(pin) := swPinCtrl(pin)
+      iofPlusSwPinCtrl(pin).oval := iofCtrl(pin).oval
+      iofPlusSwPinCtrl(pin).oe := iofCtrl(pin).oe
+      iofPlusSwPinCtrl(pin).ie := iofCtrl(pin).ie
    
       // Final XOR & Pin Control
       pre_xor  := Mux(iofEnReg.io.q(pin), iofPlusSwPinCtrl(pin), swPinCtrl(pin))

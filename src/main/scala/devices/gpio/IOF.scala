@@ -27,7 +27,7 @@ object IOFCtrl {
 // Package up the inputs and outputs
 // for the IOF
 class IOFPin extends Pin {
-  val o  = Output(IOFCtrl())
+  val o  = Output(new IOFCtrl())
 
   def default(): Unit = {
     this.o.oval  := false.B
@@ -57,7 +57,11 @@ class IOFPin extends Pin {
 // and drive the valid signal for the IOF.
 object BasePinToIOF {
   def apply(pin: BasePin, iof: IOFPin): Unit = {
-    iof <> pin
+    iof.o.oval := pin.o.oval
+    iof.o.oe := pin.o.oe
+    iof.o.ie := pin.o.ie
+
+    pin.i <> iof.i  
     iof.o.valid := true.B
   }
 }
