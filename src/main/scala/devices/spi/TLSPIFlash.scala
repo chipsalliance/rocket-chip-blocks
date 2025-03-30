@@ -25,6 +25,22 @@ trait SPIFlashParamsBase extends SPIParamsBase {
   lazy val insnAddrLenBits = log2Floor(insnAddrBytes) + 1
 }
 
+/** SPI Flash Parameters
+  *
+  * @param rAddress control registers base address in TL
+  * @param fAddress flash base address in TL
+  * @param rSize SPI control registers address space size
+  * @param fSize SPI Flash address space size
+  * @param rxDepth rx fifo depth
+  * @param txDepth tx fifo depth
+  * @param csWidth width of chip select signal
+  * @param delayBits width of delay control registers
+  * @param divisorBits baud rate divisor
+  * @param fineDelayBits width of fine delay control register
+  * @param sampleDelayBits width of sample delay control register
+  * @param defaultSampleDel default sample delay number
+  * @param oeDisableDummy disable outout enable during dummy cycles in flash mode
+  */
 case class SPIFlashParams(
     rAddress: BigInt,
     fAddress: BigInt,
@@ -51,6 +67,15 @@ case class SPIFlashParams(
   require(defaultSampleDel >= 0)
 }
 
+/** QSPI which contains Serial Memory Mode to act as a Serial Flash memory controller
+  *
+  * ==Features==
+  *  1. Support two mode:
+  *   i. SPI mode as descrriped in TLSPI
+  *   i. Serial Memory Mode: In this Mode, the QSPI acts as a serial Flash memory controller.
+  *  1. Set of TL accessible FLASH control registers to perform any Flash command
+  *  1. Command, address and data can be sent independently using different modes.(Single, Dual, Quad).
+  */
 class SPIFlashTopModule(c: SPIFlashParamsBase, outer: TLSPIFlashBase)
   extends SPITopModule(c, outer) {
 

@@ -38,7 +38,21 @@ trait SPIParamsBase {
   lazy val rxDepthBits = log2Floor(rxDepth) + 1
 
 }
-
+/** SPI Parameters
+  *
+  * @param rAddress spi device base address
+  * @param rSize SPI control registers address space size
+  * @param rxDepth rx fifo depth
+  * @param txDepth tx fifo depth
+  * @param csWidth width of chip select signal
+  * @param frameBits number of bits in a frame
+  * @param delayBits width of delay control registers
+  * @param divisorBits baud rate divisor
+  * @param fineDelayBits width of fine delay control register
+  * @param sampleDelayBits width of sample delay control register
+  * @param defaultSampleDel default sample delay number
+  * @param oeDisableDummy disable outout enable during dummy cycles in flash mode
+  */
 case class SPIParams(
     rAddress: BigInt,
     rSize: BigInt = 0x1000,
@@ -62,6 +76,31 @@ case class SPIParams(
   require(!oeDisableDummy)
 }
 
+/** Controller for Quad Serial Peripheral Interface.
+  *
+  * It's a memory-mapped device using data queue to transfer data across the SPI bus.
+  *
+  * ==Features==
+  *  i. Full-duplex operation, simultaneous receive and transmit
+  *  i. Operates in master mode
+  *  i. FIFO depth and width is configurable
+  *  i. Serial clock with programmable polarity, programmable baud rate generator, configurable external device selects number
+  *  i. Separate transmit and receive FIFOs
+  *  i. TL slave interface to Soc
+  *  i. Programmable master mode clock frequencies
+  *
+  * ==Component==
+  *  - SPI FIFO
+  *  - SPI Media
+  *  - SPI control registers
+  *
+  * ==Datapass==
+  * {{{
+  * TL bus <--> SPITopModule <--> IO Port
+  * }}}
+  * ==Interruption==
+  * send interrupt if fifo watermark triggers
+  */
 class SPITopModule(c: SPIParamsBase, outer: TLSPIBase)
     extends LazyModuleImp(outer) {
 
