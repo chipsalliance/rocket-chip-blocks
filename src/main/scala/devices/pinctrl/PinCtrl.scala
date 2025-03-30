@@ -3,6 +3,7 @@ package sifive.blocks.devices.pinctrl
 
 import chisel3._
 import chisel3.util._
+import chisel3.experimental.dataview._
 
 // This is the base class of things you "always"
 // want to control from a HW block.
