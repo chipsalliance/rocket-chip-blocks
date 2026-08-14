@@ -137,7 +137,7 @@ class UARTRx(c: UARTParams) extends Module {
       prescaler := prescaler_next
       when (pulse) {
         // sample scan in
-        sample := Cat(sample, io.in)
+        sample :<= Cat(sample, io.in).squeeze
         data_count := countdown >> c.oversample
         sample_count := countdown(c.oversample-1, 0)
 
