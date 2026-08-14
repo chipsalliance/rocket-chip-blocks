@@ -83,7 +83,7 @@ class UARTTx(c: UARTParams) extends Module {
     }
     else {
       val bit9 = if (c.dataBits == 9) Mux(io.data8or9.get, 1.U(1.W), io.in.bits(8)) else 1.U(1.W)
-      shifter := Cat(bit9, io.in.bits(7,0), 0.U(1.W))
+      shifter :<= Cat(bit9, io.in.bits(7,0), 0.U(1.W)).squeeze
       counter := Mux1H((0 until c.stopBits).map(i =>
         (io.nstop === i.U) -> (n + i + 1).U)) - io.data8or9.getOrElse(0.U)
     }
