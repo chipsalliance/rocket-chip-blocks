@@ -2,6 +2,7 @@ package sifive.blocks.devices.uart
 
 import chisel3._
 import chisel3.util._
+import chisel3.experimental.noPrefix
 
 import org.chipsalliance.cde.config.{Field, Parameters}
 import freechips.rocketchip.diplomacy._
@@ -32,6 +33,8 @@ import sifive.blocks.util._
   * @param includeParity parity support
   * @param includeIndependentParity Tx and Rx have opposite parity modes
   * @param initBaudRate initial baud rate
+  * @param syncStages number of synchronizer flops on the rxd and cts_n inputs, which are asynchronous
+  *                   to the UART clock; 0 connects them to the receiver and transmitter directly
   *
   * @note baud rate divisor = clk frequency / baud rate. It means the number of clk period for one data bit.
   *       Calculated in [[UARTAttachParams.attachTo()]]
@@ -62,12 +65,14 @@ case class UARTParams(
   includeParity: Boolean = false,
   includeIndependentParity: Boolean = false, // Tx and Rx have opposite parity modes
   initBaudRate: BigInt = BigInt(115200),
+  syncStages: Int = 2,
 ) extends DeviceParams
 {
   def oversampleFactor = 1 << oversample
   require(divisorBits > oversample)
   require(oversampleFactor > nSamples)
   require((dataBits == 8) || (dataBits == 9))
+  require(syncStages == 0 || syncStages > 1, s"UART syncStages must be 0 or at least 2, not $syncStages")
 }
 
 class UARTPortIO(val c: UARTParams) extends Bundle {
@@ -151,9 +156,18 @@ class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
   val nstop = RegInit(0.U(stopCountBits.W))
   val data8or9 = RegInit(true.B)
 
+  // rxd and cts_n come from pins that are asynchronous to this clock. Synchronize them before any
+  // logic samples them; noPrefix keeps the instance names uart_rxd_sync and uart_cts_sync.
+  private val rxd = noPrefix {
+    SyncResetSynchronizerShiftReg(port.rxd, c.syncStages, init = 1, name = Some("uart_rxd_sync"))
+  }
+  private val cts_n = port.cts_n.map { ct =>
+    noPrefix { SyncResetSynchronizerShiftReg(ct, c.syncStages, init = 0, name = Some("uart_cts_sync")) }
+  }
+
   if (c.includeFourWire){
-    txm.io.en := txen && (!port.cts_n.get || !enwire4)
-    txm.io.cts_n.get := port.cts_n.get
+    txm.io.en := txen && (!cts_n.get || !enwire4)
+    txm.io.cts_n.get := cts_n.get
   }
   else 
     txm.io.en := txen
@@ -168,7 +182,7 @@ class UART(busWidthBytes: Int, val c: UARTParams, divisorInit: Int = 0)
   }
 
   rxm.io.en := rxen
-  rxm.io.in := port.rxd
+  rxm.io.in := rxd
   rxq.io.enq.valid := rxm.io.out.valid
   rxq.io.enq.bits := rxm.io.out.bits
   rxm.io.div := div
